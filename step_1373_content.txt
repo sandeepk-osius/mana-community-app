@@ -1,0 +1,59 @@
+Created At: 2026-05-28T18:50:00Z
+Completed At: 2026-05-28T18:50:01Z
+File Path: `file:///d:/Application/applications/mana%20community/mana-community-app/src/app/components/sports/SportsAdmin.tsx`
+Total Lines: 5306
+Total Bytes: 285194
+Showing lines 2480 to 2675
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+2480:                         Failed to load venue details.
+2481:                       </div>
+2482:                     )}
+2483:                   </div>
+2484:                 )}
+2485: 
+2486:                 {/* Selected Sports Configurations Section */}
+2487:                 {selectedSportsWithEvents.length > 0 && (
+2488:                   <div className="space-y-4 pt-2">
+2489:                     <div className="text-xs font-semibold text-[#94a3b8] uppercase tracking-widest border-b border-[#2a3a5c] pb-2">Selected Sports Configurations</div>
+2490:                     <div className="grid grid-cols-1 gap-6">
+2491:                       {selectedSportsWithEvents.map(s => (
+2492:                         <div key={s.sportId} className="flex flex-col gap-4 p-5 border border-[#2a3a5c] bg-[#141c2e]/60 rounded-xl relative transition-all duration-300">
+2493:                           {/* Sport Header */}
+2494:                           <div className="flex flex-row items-center justify-between border-b border-[#2a3a5c]/60 pb-3">
+2495:                             <div className="flex gap-2 items-center">
+2496:                               {s.sportIcon ? (
+2497:                                 <span className="text-2xl leading-none">{s.sportIcon}</span>
+2498:                               ) : (
+2499:                                 <span className="text-2xl leading-none">🏆</span>
+2500:                               )}
+2501:                               <h5 className="text-[#f1f5f9] font-bold text-base uppercase tracking-wid
+<truncated 11401 bytes>
+val => updateEventField(s.sportId, e.id, "tournamentType", val.target.value)}
+2649:                                       className={cn(
+2650:                                         "w-full bg-[#0c1220] border rounded-lg px-3 py-2 text-xs text-[#f1f5f9] focus:border-[#f97316] outline-none appearance-none",
+2651:                                         !e.tournamentType ? "border-red-500/50" : "border-[#2a3a5c]"
+2652:                                       )}
+2653:                                     >
+2654:                                       <option value="">Select Format...</option>
+2655:                                       <option value="ROUND_ROBIN">Round Robin</option>
+2656:                                       <option value="KNOCKOUT_SINGLE">Knockout (Single Elimination)</option>
+2657:                                       <option value="KNOCKOUT_DOUBLE">Knockout (Double Elimination)</option>
+2658:                                       <option value="GROUP_PLAYOFF">Group Playoff</option>
+2659:                                       <option value="CUSTOM">Custom</option>
+2660:                                     </select>
+2661:                                     {!e.tournamentType && (
+2662:                                       <span className="text-[10px] text-red-400 mt-1 block font-medium">Tournament Format is required</span>
+2663:                                     )}
+2664:                                   </div>
+2665:                                 </div>
+2666:                               </div>
+2667:                             ))}
+2668:                           </div>
+2669:                         </div>
+2670:                       ))}
+2671:                     </div>
+2672:                   </div>
+2673:                 )}
+2674: 
+2675:                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
