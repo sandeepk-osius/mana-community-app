@@ -552,13 +552,12 @@ export function SportsAuction() {
                   <div
                     key={ev.id}
                     className={`card ${auctionConfig ? 'card-gold' : ''}`}
-                    style={{ cursor: 'pointer', opacity: auctionConfig ? 1 : 0.8 }}
+                    style={{ cursor: (auctionConfig || canEditAuctionConfig) ? 'pointer' : 'default', opacity: auctionConfig ? 1 : 0.8 }}
                     onClick={() => {
                       if (auctionConfig) {
                         setSelectedConfigId(auctionConfig.id);
                         nav('live');
-                      } else {
-                        // If no auction exists, go to config to create one for this event
+                      } else if (canEditAuctionConfig) {
                         setSport(ev.sport?.name.toLowerCase() || 'cricket');
                         setSelectedEventId(ev.id);
                         nav('config');
@@ -619,7 +618,7 @@ export function SportsAuction() {
                     ))}
                   </select>
                 </div>
-                <button className="btn btn-gold" onClick={handleSaveConfig}>Save & Apply ↗</button>
+                {canEditAuctionConfig && <button className="btn btn-gold" onClick={handleSaveConfig}>Save & Apply ↗</button>}
               </div>
             </div>
 
@@ -694,7 +693,8 @@ export function SportsAuction() {
                         <button
                           key={cat}
                           className={`btn btn-outline btn-sm ${categories.includes(cat) ? 'active-chip' : ''}`}
-                          onClick={() => toggleCat(cat)}
+                          onClick={canEditAuctionConfig ? () => toggleCat(cat) : undefined}
+                          disabled={!canEditAuctionConfig}
                           style={categories.includes(cat) ? { color: 'var(--gold)', borderColor: 'rgba(212,160,23,0.5)', background: 'rgba(212,160,23,0.08)' } : {}}
                         >
                           {cat}
@@ -819,10 +819,10 @@ export function SportsAuction() {
                 {auctionStatus === 'LIVE' && <span className="tag tag-live">● Auction Live</span>}
                 {(auctionStatus === 'PAUSED' || auctionStatus === 'ACTIVE') && <span className="tag tag-blue">⏸ Paused</span>}
                 {auctionStatus === 'COMPLETED' && <span className="tag tag-green">🏆 Completed</span>}
-                {auctionStatus !== 'LIVE' && auctionStatus !== 'COMPLETED' && (<button className="btn btn-gold btn-sm" onClick={() => handleStatusChange('LIVE')}>▶ Start</button>)}
-                {auctionStatus === 'LIVE' && (<button className="btn btn-outline btn-sm" onClick={() => handleStatusChange('ACTIVE')}>⏸ Pause</button>)}
-                {(auctionStatus === 'LIVE' || auctionStatus === 'ACTIVE') && (<button className="btn btn-outline btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => { if (window.confirm("Are you sure you want to stop the auction? This cannot be undone.")) { handleStatusChange('COMPLETED'); } }}>⏹ Stop</button>)}
-                <button className="btn btn-outline btn-sm" onClick={() => nav('config')}>Edit Rules</button>
+                {canEditLiveAuction && auctionStatus !== 'LIVE' && auctionStatus !== 'COMPLETED' && (<button className="btn btn-gold btn-sm" onClick={() => handleStatusChange('LIVE')}>▶ Start</button>)}
+                {canEditLiveAuction && auctionStatus === 'LIVE' && (<button className="btn btn-outline btn-sm" onClick={() => handleStatusChange('ACTIVE')}>⏸ Pause</button>)}
+                {canEditLiveAuction && (auctionStatus === 'LIVE' || auctionStatus === 'ACTIVE') && (<button className="btn btn-outline btn-sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => { if (window.confirm("Are you sure you want to stop the auction? This cannot be undone.")) { handleStatusChange('COMPLETED'); } }}>⏹ Stop</button>)}
+                {canEditAuctionConfig && (<button className="btn btn-outline btn-sm" onClick={() => nav('config')}>Edit Rules</button>)}
               </div>
             </div>
 
@@ -851,7 +851,7 @@ export function SportsAuction() {
                 <div style={{ fontSize: 48, marginBottom: 16 }}>⚙️</div>
                 <div className="player-name-big" style={{ marginBottom: 8 }}>No Auction Configured</div>
                 <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, maxWidth: 440, margin: '0 auto 24px', lineHeight: 1.7 }}>No auction configuration has been created for your community's open registration events yet. Create one to define teams, player pools, and bidding rules.</div>
-                {isAuctionAdmin && (<button className="btn btn-gold" style={{ padding: '14px 40px', fontSize: 16 }} onClick={() => nav('config')}>⚙️ Create Auction Config</button>)}
+                {canEditAuctionConfig && (<button className="btn btn-gold" style={{ padding: '14px 40px', fontSize: 16 }} onClick={() => nav('config')}>⚙️ Create Auction Config</button>)}
               </div>
             ) : (auctionStatus === 'DRAFT' || auctionStatus === 'ACTIVE') && !livePlayer ? (
               <div className="auction-stage" style={{ textAlign: 'center', padding: '60px 24px' }}>
@@ -864,8 +864,8 @@ export function SportsAuction() {
                     <>
                       <div style={{ fontSize: 48, marginBottom: 16 }}>🏏</div>
                       <div className="player-name-big" style={{ marginBottom: 8 }}>Ready to Start?</div>
-                      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>{isAuctionAdmin ? "Everything looks good! Click below to begin the auction. Teams can bid by clicking their card." : "The auction has not started yet. Please wait for an administrator to begin."}</div>
-                      {isAuctionAdmin ? (<button className="btn btn-gold" style={{ padding: '14px 40px', fontSize: 16 }} onClick={() => handleStatusChange('LIVE')}>🚀 Start Auction</button>) : (<div className="tag tag-gold" style={{ padding: '8px 16px' }}>Waiting for Admin</div>)}
+                      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>{canEditLiveAuction ? "Everything looks good! Click below to begin the auction. Teams can bid by clicking their card." : "The auction has not started yet. Please wait for an administrator to begin."}</div>
+                      {canEditLiveAuction ? (<button className="btn btn-gold" style={{ padding: '14px 40px', fontSize: 16 }} onClick={() => handleStatusChange('LIVE')}>🚀 Start Auction</button>) : (<div className="tag tag-gold" style={{ padding: '8px 16px' }}>Waiting for Admin</div>)}
                     </>
                   ) : (
                     <>
@@ -876,11 +876,11 @@ export function SportsAuction() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><span style={{ color: hasTeams ? 'var(--green)' : 'var(--red)', fontSize: 16 }}>{hasTeams ? '✅' : '❌'}</span><span style={{ color: hasTeams ? 'var(--green)' : '#f1f5f9' }}>Teams — {teams.length} configured {!hasTeams && '(minimum 2 required)'}</span></div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><span style={{ color: hasPlayers ? 'var(--green)' : 'var(--red)', fontSize: 16 }}>{hasPlayers ? '✅' : '❌'}</span><span style={{ color: hasPlayers ? 'var(--green)' : '#f1f5f9' }}>Player Pool — {playerCount} players {!hasPlayers && '(at least 1 required)'}</span></div>
                       </div>
-                      {isAuctionAdmin && (
+                      {(canEditAuctionConfig || canEditTeams || canEditPlayerPool) && (
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                          <button className="btn btn-gold" style={{ padding: '14px 32px', fontSize: 15 }} onClick={() => nav('config')}>⚙️ Configure Auction</button>
-                          {!hasTeams && (<button className="btn btn-outline" style={{ padding: '14px 32px', fontSize: 15 }} onClick={() => nav('teams')}>+ Add Teams</button>)}
-                          {hasTeams && !hasPlayers && (<button className="btn btn-outline" style={{ padding: '14px 32px', fontSize: 15 }} onClick={() => nav('players')}>+ Add Players</button>)}
+                          {canEditAuctionConfig && (<button className="btn btn-gold" style={{ padding: '14px 32px', fontSize: 15 }} onClick={() => nav('config')}>⚙️ Configure Auction</button>)}
+                          {canEditTeams && !hasTeams && (<button className="btn btn-outline" style={{ padding: '14px 32px', fontSize: 15 }} onClick={() => nav('teams')}>+ Add Teams</button>)}
+                          {canEditPlayerPool && hasTeams && !hasPlayers && (<button className="btn btn-outline" style={{ padding: '14px 32px', fontSize: 15 }} onClick={() => nav('players')}>+ Add Players</button>)}
                         </div>
                       )}
                     </>
@@ -899,7 +899,7 @@ export function SportsAuction() {
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🏁</div>
                 <div className="player-name-big" style={{ marginBottom: 8 }}>Auction Queue Empty</div>
                 <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24 }}>All players from the queue have been auctioned. Click below to close the auction.</div>
-                {isAuctionAdmin && (<button className="btn btn-gold" style={{ padding: '14px 40px', fontSize: 16, background: 'var(--green)', borderColor: 'var(--green)', color: 'white' }} onClick={() => handleStatusChange('COMPLETED')}>Close Auction</button>)}
+                {canEditLiveAuction && (<button className="btn btn-gold" style={{ padding: '14px 40px', fontSize: 16, background: 'var(--green)', borderColor: 'var(--green)', color: 'white' }} onClick={() => handleStatusChange('COMPLETED')}>Close Auction</button>)}
               </div>
             ) : livePlayer ? (
               <div className="grid2">
@@ -996,9 +996,11 @@ export function SportsAuction() {
             <div className="page-hdr">
               <div><div className="page-title">Teams Dashboard</div><div className="page-sub">{teams.length} teams configured for current auction</div></div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button className="btn btn-gold" onClick={() => setShowAddTeam(!showAddTeam)}>
-                  {showAddTeam ? '✕ Cancel' : '+ Create Team'}
-                </button>
+                {canEditTeams && (
+                  <button className="btn btn-gold" onClick={() => setShowAddTeam(!showAddTeam)}>
+                    {showAddTeam ? '✕ Cancel' : '+ Create Team'}
+                  </button>
+                )}
                 <button className="btn btn-outline" onClick={() => toast.success('Team CSV export ready')}>Export ↗</button>
               </div>
             </div>
@@ -1337,83 +1339,87 @@ export function SportsAuction() {
           <div className="page active">
             <div className="page-hdr">
               <div><div className="page-title">Cricket Setup</div><div className="page-sub">Manage Players & Teams</div></div>
-              <button className="btn btn-outline" onClick={() => nav('config')}>Auction Rules ↗</button>
+              {canEditAuctionConfig && <button className="btn btn-outline" onClick={() => nav('config')}>Auction Rules ↗</button>}
             </div>
 
             <div className="grid2">
-              <div className="card card-gold">
-                <div className="sec-title">Add / Edit Team</div>
-                <div className="fgrp" style={{ marginBottom: 10 }}>
-                  <div className="flabel">Team Name</div>
-                  <input className="finput" placeholder="e.g. Team Warriors"
-                    value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
-                </div>
-                <div className="fgrp" style={{ marginBottom: 10 }}>
-                  <div className="flabel">Captain / Owner</div>
-                  <select className="fselect" value={selectedOwnerId || ''} onChange={e => setSelectedOwnerId(Number(e.target.value))}>
-                    <option value="">Select Captain...</option>
-                    {communityUsers.map(u => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="fgrp" style={{ marginBottom: 10 }}>
-                  <div className="flabel">Starting Budget (₹)</div>
-                  <input className="finput" type="number"
-                    value={newTeamBudget} onChange={e => setNewTeamBudget(Number(e.target.value))} />
-                </div>
-                <button className="btn btn-gold" style={{ width: '100%' }} onClick={handleCreateTeam} disabled={isCreatingTeam}>
-                  {isCreatingTeam ? 'Saving...' : 'Save Team ↗'}
-                </button>
-              </div>
-
-              <div className="card card-gold">
-                <div className="sec-title">Add New Player</div>
-                <div className="form-row">
-                  <div className="fgrp" style={{ marginBottom: 10, flex: 2 }}>
-                    <div className="flabel">Player Name</div>
-                    <input className="finput" placeholder="e.g. Virat K."
-                      value={newPlayer.name} onChange={e => setNewPlayer({ ...newPlayer, name: e.target.value })} />
-                  </div>
-                  <div className="fgrp" style={{ marginBottom: 10, flex: 1 }}>
-                    <div className="flabel">Age</div>
-                    <input className="finput" type="number"
-                      value={newPlayer.age} onChange={e => setNewPlayer({ ...newPlayer, age: Number(e.target.value) })} />
-                  </div>
-                </div>
-
-                <div className="form-row">
+              {canEditTeams && (
+                <div className="card card-gold">
+                  <div className="sec-title">Add / Edit Team</div>
                   <div className="fgrp" style={{ marginBottom: 10 }}>
-                    <div className="flabel">Category</div>
-                    <select className="fselect" value={newPlayer.category} onChange={e => setNewPlayer({ ...newPlayer, category: e.target.value })}>
-                      <option value="BATSMEN">Batsmen</option>
-                      <option value="BOWLERS">Bowlers</option>
-                      <option value="ALL_ROUNDERS">All Rounders</option>
-                      <option value="WICKET_KEEPERS">Wicket Keepers</option>
+                    <div className="flabel">Team Name</div>
+                    <input className="finput" placeholder="e.g. Team Warriors"
+                      value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
+                  </div>
+                  <div className="fgrp" style={{ marginBottom: 10 }}>
+                    <div className="flabel">Captain / Owner</div>
+                    <select className="fselect" value={selectedOwnerId || ''} onChange={e => setSelectedOwnerId(Number(e.target.value))}>
+                      <option value="">Select Captain...</option>
+                      {communityUsers.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="fgrp" style={{ marginBottom: 10 }}>
-                    <div className="flabel">Role</div>
-                    <input className="finput" placeholder="e.g. Right-Hand Bat"
-                      value={newPlayer.role} onChange={e => setNewPlayer({ ...newPlayer, role: e.target.value })} />
+                    <div className="flabel">Starting Budget (₹)</div>
+                    <input className="finput" type="number"
+                      value={newTeamBudget} onChange={e => setNewTeamBudget(Number(e.target.value))} />
                   </div>
+                  <button className="btn btn-gold" style={{ width: '100%' }} onClick={handleCreateTeam} disabled={isCreatingTeam}>
+                    {isCreatingTeam ? 'Saving...' : 'Save Team ↗'}
+                  </button>
                 </div>
+              )}
 
-                <div className="fgrp" style={{ marginBottom: 14 }}>
-                  <div className="flabel">Base Price (₹)</div>
-                  <input className="finput" type="number"
-                    value={newPlayer.basePrice} onChange={e => setNewPlayer({ ...newPlayer, basePrice: Number(e.target.value) })} />
+              {canEditPlayerPool && (
+                <div className="card card-gold">
+                  <div className="sec-title">Add New Player</div>
+                  <div className="form-row">
+                    <div className="fgrp" style={{ marginBottom: 10, flex: 2 }}>
+                      <div className="flabel">Player Name</div>
+                      <input className="finput" placeholder="e.g. Virat K."
+                        value={newPlayer.name} onChange={e => setNewPlayer({ ...newPlayer, name: e.target.value })} />
+                    </div>
+                    <div className="fgrp" style={{ marginBottom: 10, flex: 1 }}>
+                      <div className="flabel">Age</div>
+                      <input className="finput" type="number"
+                        value={newPlayer.age} onChange={e => setNewPlayer({ ...newPlayer, age: Number(e.target.value) })} />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="fgrp" style={{ marginBottom: 10 }}>
+                      <div className="flabel">Category</div>
+                      <select className="fselect" value={newPlayer.category} onChange={e => setNewPlayer({ ...newPlayer, category: e.target.value })}>
+                        <option value="BATSMEN">Batsmen</option>
+                        <option value="BOWLERS">Bowlers</option>
+                        <option value="ALL_ROUNDERS">All Rounders</option>
+                        <option value="WICKET_KEEPERS">Wicket Keepers</option>
+                      </select>
+                    </div>
+                    <div className="fgrp" style={{ marginBottom: 10 }}>
+                      <div className="flabel">Role</div>
+                      <input className="finput" placeholder="e.g. Right-Hand Bat"
+                        value={newPlayer.role} onChange={e => setNewPlayer({ ...newPlayer, role: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="fgrp" style={{ marginBottom: 14 }}>
+                    <div className="flabel">Base Price (₹)</div>
+                    <input className="finput" type="number"
+                      value={newPlayer.basePrice} onChange={e => setNewPlayer({ ...newPlayer, basePrice: Number(e.target.value) })} />
+                  </div>
+
+                  <div className="sec-title" style={{ fontSize: 14 }}>Player Statistics</div>
+                  <div className="form-row">
+                    <div className="fgrp" style={{ marginBottom: 10 }}><div className="flabel">Matches</div><input className="finput" type="number" value={newPlayer.matches} onChange={e => setNewPlayer({ ...newPlayer, matches: Number(e.target.value) })} /></div>
+                    <div className="fgrp" style={{ marginBottom: 10 }}><div className="flabel">Runs</div><input className="finput" type="number" value={newPlayer.runs} onChange={e => setNewPlayer({ ...newPlayer, runs: Number(e.target.value) })} /></div>
+                    <div className="fgrp" style={{ marginBottom: 10 }}><div className="flabel">Wickets</div><input className="finput" type="number" value={newPlayer.wickets} onChange={e => setNewPlayer({ ...newPlayer, wickets: Number(e.target.value) })} /></div>
+                  </div>
+
+                  <button className="btn btn-gold" style={{ width: '100%', marginTop: 10 }} onClick={handleCreatePlayer}>Add Player ↗</button>
                 </div>
-
-                <div className="sec-title" style={{ fontSize: 14 }}>Player Statistics</div>
-                <div className="form-row">
-                  <div className="fgrp" style={{ marginBottom: 10 }}><div className="flabel">Matches</div><input className="finput" type="number" value={newPlayer.matches} onChange={e => setNewPlayer({ ...newPlayer, matches: Number(e.target.value) })} /></div>
-                  <div className="fgrp" style={{ marginBottom: 10 }}><div className="flabel">Runs</div><input className="finput" type="number" value={newPlayer.runs} onChange={e => setNewPlayer({ ...newPlayer, runs: Number(e.target.value) })} /></div>
-                  <div className="fgrp" style={{ marginBottom: 10 }}><div className="flabel">Wickets</div><input className="finput" type="number" value={newPlayer.wickets} onChange={e => setNewPlayer({ ...newPlayer, wickets: Number(e.target.value) })} /></div>
-                </div>
-
-                <button className="btn btn-gold" style={{ width: '100%', marginTop: 10 }} onClick={handleCreatePlayer}>Add Player ↗</button>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -1423,7 +1429,7 @@ export function SportsAuction() {
           <div className="page active">
             <div className="page-hdr">
               <div><div className="page-title" style={{ textTransform: 'capitalize' }}>{activeTab}</div><div className="page-sub">Configure auction rules</div></div>
-              <button className="btn btn-outline" onClick={() => nav('config')}>Setup Auction ↗</button>
+              {canEditAuctionConfig && <button className="btn btn-outline" onClick={() => nav('config')}>Setup Auction ↗</button>}
             </div>
             <div className="card"><div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--muted)' }}>No auction configured for {activeTab} yet.</div></div>
           </div>

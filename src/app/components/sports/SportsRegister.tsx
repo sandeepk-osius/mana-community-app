@@ -10,17 +10,247 @@ import {
 } from "../../../constants/permissions";
 import type { SportsEvent, PlayerCategory } from "../../../types/api";
 
+// ─── Sport config ─────────────────────────────────────────────────────────────
+
+interface StatField {
+  name: "matches" | "runs" | "wickets" | "strikeRate" | "avgScore";
+  label: string;
+  step?: number;
+}
+
+interface CategoryOption {
+  value: string;
+  label: string;
+  roles: string[];
+}
+
+interface SportConfig {
+  categories: CategoryOption[];
+  stats: StatField[];
+}
+
+function detectSport(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("cricket")) return "cricket";
+  if (n.includes("football") || n.includes("soccer")) return "football";
+  if (n.includes("volleyball")) return "volleyball";
+  if (n.includes("basketball")) return "basketball";
+  if (n.includes("badminton")) return "badminton";
+  if (n.includes("kabaddi")) return "kabaddi";
+  if (n.includes("hockey")) return "hockey";
+  if (n.includes("throwball")) return "throwball";
+  if (n.includes("rugby")) return "rugby";
+  return "generic";
+}
+
+const SPORT_CONFIGS: Record<string, SportConfig> = {
+  cricket: {
+    categories: [
+      {
+        value: "BATSMEN", label: "Batsmen",
+        roles: ["Right Hand Batsman", "Left Hand Batsman"],
+      },
+      {
+        value: "BOWLERS", label: "Bowlers",
+        roles: [
+          "Right Arm Fast", "Right Arm Medium", "Right Arm Off Spin", "Right Arm Leg Spin",
+          "Left Arm Fast", "Left Arm Medium", "Left Arm Spin (Orthodox)", "Left Arm Spin (Chinaman)",
+        ],
+      },
+      {
+        value: "ALL_ROUNDERS", label: "All-Rounders",
+        roles: ["Batting All-Rounder", "Bowling All-Rounder", "Right Hand Batsman", "Left Hand Batsman"],
+      },
+      {
+        value: "WICKET_KEEPERS", label: "Wicket-Keepers",
+        roles: ["Wicketkeeper Batsman"],
+      },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Runs" },
+      { name: "wickets", label: "Wickets" },
+      { name: "strikeRate", label: "Strike Rate", step: 0.01 },
+      { name: "avgScore", label: "Batting Average", step: 0.01 },
+    ],
+  },
+  football: {
+    categories: [
+      { value: "GOALKEEPER", label: "Goalkeeper", roles: ["Goalkeeper"] },
+      {
+        value: "DEFENDER", label: "Defender",
+        roles: ["Center Back", "Right Back", "Left Back", "Sweeper"],
+      },
+      {
+        value: "MIDFIELDER", label: "Midfielder",
+        roles: ["Central Midfielder", "Defensive Midfielder", "Attacking Midfielder", "Right Winger", "Left Winger"],
+      },
+      {
+        value: "FORWARD", label: "Forward",
+        roles: ["Striker", "Center Forward", "Left Forward", "Right Forward"],
+      },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Goals" },
+      { name: "wickets", label: "Assists" },
+      { name: "strikeRate", label: "Pass Accuracy (%)", step: 0.01 },
+      { name: "avgScore", label: "Goals Per Game", step: 0.01 },
+    ],
+  },
+  volleyball: {
+    categories: [
+      { value: "OUTSIDE_HITTER", label: "Outside Hitter", roles: ["Left Side", "Right Side"] },
+      { value: "MIDDLE_BLOCKER", label: "Middle Blocker", roles: ["Middle Blocker"] },
+      { value: "SETTER", label: "Setter", roles: ["Setter"] },
+      { value: "LIBERO", label: "Libero", roles: ["Libero"] },
+      { value: "OPPOSITE_HITTER", label: "Opposite Hitter", roles: ["Opposite Hitter"] },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Points / Kills" },
+      { name: "wickets", label: "Blocks" },
+      { name: "strikeRate", label: "Aces" },
+      { name: "avgScore", label: "Digs", step: 0.01 },
+    ],
+  },
+  basketball: {
+    categories: [
+      { value: "POINT_GUARD", label: "Point Guard", roles: ["Point Guard"] },
+      { value: "SHOOTING_GUARD", label: "Shooting Guard", roles: ["Shooting Guard"] },
+      { value: "SMALL_FORWARD", label: "Small Forward", roles: ["Small Forward"] },
+      { value: "POWER_FORWARD", label: "Power Forward", roles: ["Power Forward"] },
+      { value: "CENTER", label: "Center", roles: ["Center"] },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Points" },
+      { name: "wickets", label: "Rebounds" },
+      { name: "strikeRate", label: "Assists" },
+      { name: "avgScore", label: "Points Per Game", step: 0.01 },
+    ],
+  },
+  badminton: {
+    categories: [
+      { value: "SINGLES", label: "Singles", roles: ["Men's Singles", "Women's Singles"] },
+      { value: "DOUBLES", label: "Doubles", roles: ["Men's Doubles", "Women's Doubles"] },
+      { value: "MIXED_DOUBLES", label: "Mixed Doubles", roles: ["Mixed Doubles"] },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Wins" },
+      { name: "wickets", label: "Titles" },
+      { name: "strikeRate", label: "Win Rate (%)", step: 0.01 },
+      { name: "avgScore", label: "Avg Smash Speed (km/h)", step: 0.01 },
+    ],
+  },
+  kabaddi: {
+    categories: [
+      {
+        value: "RAIDER", label: "Raider",
+        roles: ["Strong Raider", "Touch Specialist", "Running Hand Touch"],
+      },
+      {
+        value: "DEFENDER", label: "Defender",
+        roles: ["Left Corner", "Right Corner", "Cover"],
+      },
+      {
+        value: "ALL_ROUNDER", label: "All-Rounder",
+        roles: ["Raiding All-Rounder", "Defending All-Rounder"],
+      },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Raid Points" },
+      { name: "wickets", label: "Tackle Points" },
+      { name: "strikeRate", label: "Super Raids" },
+      { name: "avgScore", label: "Super Tackles" },
+    ],
+  },
+  hockey: {
+    categories: [
+      { value: "GOALKEEPER", label: "Goalkeeper", roles: ["Goalkeeper"] },
+      {
+        value: "DEFENDER", label: "Defender",
+        roles: ["Full Back", "Half Back", "Sweeper"],
+      },
+      {
+        value: "MIDFIELDER", label: "Midfielder",
+        roles: ["Center Half", "Right Half", "Left Half"],
+      },
+      {
+        value: "FORWARD", label: "Forward",
+        roles: ["Center Forward", "Right Wing", "Left Wing", "Inside Right", "Inside Left"],
+      },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Goals" },
+      { name: "wickets", label: "Assists" },
+      { name: "strikeRate", label: "Penalty Corners" },
+      { name: "avgScore", label: "Goals Per Game", step: 0.01 },
+    ],
+  },
+  throwball: {
+    categories: [
+      { value: "THROWER", label: "Thrower", roles: ["Lead Thrower", "Support Thrower"] },
+      { value: "CATCHER", label: "Catcher", roles: ["Lead Catcher", "Support Catcher"] },
+      { value: "UNIVERSAL", label: "Universal (Both)", roles: ["Universal Player"] },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Points" },
+      { name: "wickets", label: "Successful Catches" },
+      { name: "strikeRate", label: "Throw Accuracy (%)", step: 0.01 },
+      { name: "avgScore", label: "Points Per Match", step: 0.01 },
+    ],
+  },
+  rugby: {
+    categories: [
+      {
+        value: "FORWARD", label: "Forward",
+        roles: ["Prop", "Hooker", "Lock", "Flanker", "Number 8"],
+      },
+      {
+        value: "BACK", label: "Back",
+        roles: ["Scrum-Half", "Fly-Half", "Center", "Wing", "Full-Back"],
+      },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Tries" },
+      { name: "wickets", label: "Tackles" },
+      { name: "strikeRate", label: "Conversions" },
+      { name: "avgScore", label: "Points Per Match", step: 0.01 },
+    ],
+  },
+  generic: {
+    categories: [
+      { value: "PLAYER", label: "Player", roles: ["Standard Player", "Captain", "Vice Captain"] },
+    ],
+    stats: [
+      { name: "matches", label: "Matches" },
+      { name: "runs", label: "Points" },
+      { name: "wickets", label: "Assists" },
+      { name: "strikeRate", label: "Performance Rate (%)", step: 0.01 },
+      { name: "avgScore", label: "Average Score", step: 0.01 },
+    ],
+  },
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function SportsRegister() {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user, hasPermission, hasAnyPermission } = useAuth();
   const isAnyAdmin = hasAnyPermission(CREATE_EDIT_EVENT_REGISTRATIONS, CREATE_EDIT_SPORTS_MAIN);
 
+  const [event, setEvent] = useState<SportsEvent | null>(null);
   const [categories, setCategories] = useState<PlayerCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form State
   const [formData, setFormData] = useState({
     categoryId: "",
     matchType: "SINGLES",
@@ -34,33 +264,41 @@ export function SportsRegister() {
     regType: "self" as "self" | "family" | "other",
     playerName: user?.fullName || "",
     relation: "",
-    flatNumber: ""
+    flatNumber: "",
   });
 
+  // Derived sport config
+  const sportKey = detectSport(event?.sport?.name || "");
+  const sportConfig = SPORT_CONFIGS[sportKey];
+  const selectedCatConfig = sportConfig.categories.find(c => c.value === formData.categoryId);
+
   useEffect(() => {
-    const loadDetails = async () => {
+    const load = async () => {
       try {
-        // Fetch categories and maybe event info if we had an endpoint for it
-        // For now we'll use the ones from the dashboard or a generic fetch
-        const cats = await sportsService.getCategories();
+        const [cats, ev] = await Promise.all([
+          sportsService.getCategories(),
+          sportsService.getEventById(Number(eventId)),
+        ]);
         setCategories(cats);
-        
-        // Mock fetching event name if needed, or just use the ID
-        setLoading(false);
-      } catch (err) {
+        setEvent(ev);
+      } catch {
         toast.error("Failed to load registration details");
+      } finally {
         setLoading(false);
       }
     };
-    loadDetails();
-  }, []);
+    load();
+  }, [eventId]);
 
-  // Update age when user profile loads
+  // Clear role when category changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, role: "" }));
+  }, [formData.categoryId]);
+
   useEffect(() => {
     if (user?.dateOfBirth) {
       const birthYear = new Date(user.dateOfBirth).getFullYear();
-      const currentYear = new Date().getFullYear();
-      setFormData(prev => ({ ...prev, age: currentYear - birthYear }));
+      setFormData(prev => ({ ...prev, age: new Date().getFullYear() - birthYear }));
     }
   }, [user]);
 
@@ -68,7 +306,7 @@ export function SportsRegister() {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? Number(value) : value
+      [name]: type === "number" ? Number(value) : value,
     }));
   };
 
@@ -81,13 +319,11 @@ export function SportsRegister() {
 
     setSubmitting(true);
     try {
-      // Map string category value to backend ID
       const selectedCat = categories.find(c => {
-        const normalizedName = c.name.toUpperCase().replace(/\s/g, '_');
-        return normalizedName === formData.categoryId || normalizedName.includes(formData.categoryId);
+        const normalized = c.name.toUpperCase().replace(/\s/g, "_");
+        return normalized === formData.categoryId || normalized.includes(formData.categoryId);
       });
-      
-      const finalCategoryId = selectedCat ? selectedCat.id : (categories.length > 0 ? categories[0].id : 1);
+      const finalCategoryId = selectedCat?.id ?? (categories[0]?.id ?? 1);
 
       await sportsService.registerForEvent({
         eventId: Number(eventId),
@@ -104,7 +340,7 @@ export function SportsRegister() {
         relation: formData.relation,
         flatNumber: formData.flatNumber,
       });
-      
+
       toast.success("Registration successful! Good luck.");
       navigate("/sports");
     } catch (err) {
@@ -124,13 +360,16 @@ export function SportsRegister() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
+      {/* Header */}
       <div className="flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-[#1a2540] rounded-full text-[#94a3b8] transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
           <h1 className="text-2xl font-semibold text-[#f1f5f9]">Complete Registration</h1>
-          <p className="text-sm text-[#94a3b8]">Provide player details for the event</p>
+          <p className="text-sm text-[#94a3b8]">
+            {event ? `${event.name}${event.sport?.name ? ` · ${event.sport.name}` : ""}` : "Provide player details for the event"}
+          </p>
         </div>
       </div>
 
@@ -162,18 +401,19 @@ export function SportsRegister() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
+        {/* Player Identity */}
         <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <Info className="w-24 h-24" />
           </div>
-          
+
           <div className="text-sm font-medium text-[#f97316] uppercase tracking-wider mb-6">Player Identity</div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Category */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Category</label>
-              <select 
+              <select
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
@@ -181,16 +421,16 @@ export function SportsRegister() {
                 className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
               >
                 <option value="">Select Category</option>
-                <option value="BATSMEN">Batsmen</option>
-                <option value="BOWLERS">Bowlers</option>
-                <option value="ALL_ROUNDERS">All Rounders</option>
-                <option value="WICKET_KEEPERS">Wicket Keepers</option>
+                {sportConfig.categories.map(cat => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
               </select>
             </div>
 
+            {/* Player Name */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Player Name</label>
-              <input 
+              <input
                 name="playerName"
                 type="text"
                 value={formData.playerName}
@@ -201,10 +441,11 @@ export function SportsRegister() {
               />
             </div>
 
+            {/* Relationship (family) */}
             {formData.regType === "family" && (
               <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
                 <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Relationship</label>
-                <select 
+                <select
                   name="relation"
                   value={formData.relation}
                   onChange={handleInputChange}
@@ -221,10 +462,11 @@ export function SportsRegister() {
               </div>
             )}
 
+            {/* Flat Number (admin) */}
             {formData.regType === "other" && (
               <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
                 <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Flat Number</label>
-                <input 
+                <input
                   name="flatNumber"
                   type="text"
                   value={formData.flatNumber}
@@ -236,48 +478,27 @@ export function SportsRegister() {
               </div>
             )}
 
+            {/* Primary Role */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Primary Role</label>
-              <select 
+              <select
                 name="role"
                 value={formData.role}
                 onChange={handleInputChange}
                 disabled={!formData.categoryId}
                 className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="">{formData.categoryId ? "Select Role" : "First select category"}</option>
-                
-                {(formData.categoryId === "BATSMEN" || formData.categoryId === "ALL_ROUNDERS") && (
-                  <optgroup label="Batting">
-                    <option value="Right Hand Batsman">Right Hand Batsman</option>
-                    <option value="Left Hand Batsman">Left Hand Batsman</option>
-                  </optgroup>
-                )}
-                
-                {(formData.categoryId === "BOWLERS" || formData.categoryId === "ALL_ROUNDERS") && (
-                  <optgroup label="Bowling">
-                    <option value="Right Arm Fast">Right Arm Fast</option>
-                    <option value="Right Arm Medium">Right Arm Medium</option>
-                    <option value="Right Arm Off Spin">Right Arm Off Spin</option>
-                    <option value="Right Arm Leg Spin">Right Arm Leg Spin</option>
-                    <option value="Left Arm Fast">Left Arm Fast</option>
-                    <option value="Left Arm Medium">Left Arm Medium</option>
-                    <option value="Left Arm Spin (Orthodox)">Left Arm Spin (Orthodox)</option>
-                    <option value="Left Arm Spin (Chinaman)">Left Arm Spin (Chinaman)</option>
-                  </optgroup>
-                )}
-                
-                {(formData.categoryId === "WICKET_KEEPERS" || formData.categoryId === "ALL_ROUNDERS") && (
-                  <optgroup label="Specialist">
-                    <option value="Wicketkeeper Batsman">Wicketkeeper Batsman</option>
-                  </optgroup>
-                )}
+                <option value="">{formData.categoryId ? "Select Role" : "Select category first"}</option>
+                {selectedCatConfig?.roles.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
             </div>
 
+            {/* Age */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Age</label>
-              <input 
+              <input
                 name="age"
                 type="number"
                 value={formData.age}
@@ -288,79 +509,36 @@ export function SportsRegister() {
           </div>
         </div>
 
-        {/* Career Stats */}
+        {/* Career Statistics */}
         <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-2xl p-6 shadow-xl">
           <div className="text-sm font-medium text-[#f97316] uppercase tracking-wider mb-6">Career Statistics</div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Matches</label>
-              <input 
-                name="matches"
-                type="number"
-                value={formData.matches}
-                onChange={handleInputChange}
-                className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Total Runs / Points</label>
-              <input 
-                name="runs"
-                type="number"
-                value={formData.runs}
-                onChange={handleInputChange}
-                className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Wickets / Assists</label>
-              <input 
-                name="wickets"
-                type="number"
-                value={formData.wickets}
-                onChange={handleInputChange}
-                className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Strike Rate</label>
-              <input 
-                name="strikeRate"
-                type="number"
-                step="0.01"
-                value={formData.strikeRate}
-                onChange={handleInputChange}
-                className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">Avg Score</label>
-              <input 
-                name="avgScore"
-                type="number"
-                step="0.01"
-                value={formData.avgScore}
-                onChange={handleInputChange}
-                className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
-              />
-            </div>
+            {sportConfig.stats.map(stat => (
+              <div key={stat.name} className="space-y-1.5">
+                <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">{stat.label}</label>
+                <input
+                  name={stat.name}
+                  type="number"
+                  step={stat.step ?? 1}
+                  value={formData[stat.name]}
+                  onChange={handleInputChange}
+                  className="w-full bg-[#0c1220] border border-[#2a3a5c] rounded-xl px-4 py-3 text-sm text-[#f1f5f9] focus:outline-none focus:border-[#f97316] transition-colors"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="flex gap-4">
-          <button 
+          <button
             type="button"
             onClick={() => navigate(-1)}
             className="flex-1 py-4 bg-transparent border border-[#2a3a5c] rounded-2xl text-[#94a3b8] font-medium hover:bg-[#1a2540] transition-all"
           >
             Go Back
           </button>
-          <button 
+          <button
             type="submit"
             disabled={submitting}
             className="flex-[2] py-4 bg-[#f97316] hover:bg-[#ea580c] text-white font-semibold rounded-2xl shadow-lg shadow-[#f97316]/20 disabled:opacity-70 transition-all flex items-center justify-center gap-2"

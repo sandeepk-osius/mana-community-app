@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, CalendarIcon, MapPin, Plus, LayoutDashboard, Edit2, Trash2, EyeOff, Eye, Users, Clock, X, Search, Trophy, ChevronDown, Check } from "lucide-react";
 import { TIME_OPTIONS } from "../../../../constants/timeOptions";
 import { Link } from "react-router";
@@ -30,6 +30,9 @@ import { SportsEventSection } from "./SportsEventSection";
 import { VenueCreationSection } from "./VenueCreationSection";
 import { PlayerCategorySection } from "./PlayerCategorySection";
 import { SportsMetaSection } from "./SportsMetaSection";
+import { RegistrationOpenModal } from "./RegistrationOpenModal";
+import type { RegistrationNotifConfig } from "./RegistrationOpenModal";
+import { notificationService } from "../../../../services/notificationService";
 
 const DEFAULT_TRIGGERS = {
   "7d":  { id: "7d",  label: "7 Days Before",       offset: -7 * 24 * 60, color: "border-blue-500",   bgColor: "rgba(59,130,246,0.15)",   textColor: "text-blue-400",   emoji: "📅", tagClass: "bg-blue-500/15 text-blue-400 border border-blue-500/20", category: "Registration", priority: "Critical" },
@@ -176,6 +179,7 @@ export function SportsAdmin() {
   const [loadingVenueDetails, setLoadingVenueDetails] = useState(false);
   const [activeEvents, setActiveEvents] = useState<any[]>([]);
   const [activeTournaments, setActiveTournaments] = useState<any[]>([]);
+  const [activatingTournament, setActivatingTournament] = useState<{ id: number; name: string } | null>(null);
 
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -535,6 +539,9 @@ export function SportsAdmin() {
   const [submitting, setSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  // Track which tabs have already done their initial data load so we don't
+  // re-fetch on every revisit. Mutations explicitly refresh their own data.
+  const hydratedTabs = useRef(new Set<TabId>());
 
   // ─── Sports Event form state ───
   const [showSportForm, setShowSportForm] = useState(false);
@@ -600,6 +607,7 @@ export function SportsAdmin() {
 
   // ─── Registration viewing state ───
   const [viewingEventId, setViewingEventId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"players" | "captains">("players");
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [nominatedCaptains, setNominatedCaptains] = useState<AuctionTeam[]>([]);
   const [loadingRegs, setLoadingRegs] = useState(false);
@@ -1052,32 +1060,43 @@ export function SportsAdmin() {
     sportsService.getCategories().then(setPlayerCategories).catch(() => { });
   }, []);
 
-  // Fetch data conditionally based on activeTab
+  // Load data the first time each tab becomes active; skip on revisits.
+  // Mutations (save / delete / activate) refresh their own data directly.
   useEffect(() => {
+    if (hydratedTabs.current.has(activeTab)) return;
+    hydratedTabs.current.add(activeTab);
+
     if (activeTab === "dashboard") {
       refreshTournaments();
     } else if (activeTab === "create-tournament") {
-      refreshTournaments();
-      sportsService.getSportsMeta().then(setSportsMeta).catch(() => { });
-      sportsService.getCategories().then(setPlayerCategories).catch(() => { });
-      communityService.getCommunities().then(setCommunities).catch(() => { });
+      // Tournament list is not needed in the form — only meta / categories / communities
+      sportsService.getSportsMeta().then(setSportsMeta).catch(() => {});
+      sportsService.getCategories().then(setPlayerCategories).catch(() => {});
+      communityService.getCommunities().then(setCommunities).catch(() => {});
     } else if (activeTab === "sports-event") {
       refreshEvents();
-      sportsService.getSportsMeta().then(setSportsMeta).catch(() => { });
-      sportsService.getCategories().then(setPlayerCategories).catch(() => { });
+      sportsService.getSportsMeta().then(setSportsMeta).catch(() => {});
+      sportsService.getCategories().then(setPlayerCategories).catch(() => {});
     } else if (activeTab === "create-venue") {
-      communityService.getCommunities().then(setCommunities).catch(() => { });
+      communityService.getCommunities().then(setCommunities).catch(() => {});
     } else if (activeTab === "player-category") {
       refreshCategories();
     }
+    // sports-meta: SportsMetaSection loads its own data internally
   }, [activeTab, refreshTournaments, refreshEvents, refreshCategories]);
 
-  // Reactively fetch venues when selected community, user community, or communities list changes (only when relevant tabs are active)
+  // Fetch venues on first visit to any tab that needs them; re-fetch when the
+  // refreshVenues callback identity changes (community or role changed).
+  const venueTabsNeedFetch = activeTab === "create-venue" || activeTab === "create-tournament" || activeTab === "sports-event";
+  const lastVenuesFetchRef = useRef<typeof refreshVenues | null>(null);
   useEffect(() => {
-    if (activeTab === "create-venue" || activeTab === "create-tournament" || activeTab === "sports-event") {
+    if (!venueTabsNeedFetch) return;
+    // Re-fetch only if: first time on a venue-using tab, OR community/role changed
+    if (lastVenuesFetchRef.current !== refreshVenues) {
+      lastVenuesFetchRef.current = refreshVenues;
       refreshVenues();
     }
-  }, [refreshVenues, activeTab]);
+  }, [refreshVenues, venueTabsNeedFetch]);
 
   // Reactively fetch details of the selected venue (only when relevant tabs are active)
   useEffect(() => {
@@ -1452,7 +1471,8 @@ export function SportsAdmin() {
       }
 
       resetForm();
-      refreshEvents();
+      // Invalidate dashboard so the next visit re-fetches fresh tournament list
+      hydratedTabs.current.delete("dashboard");
       setActiveTab("dashboard");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save tournament(s)");
@@ -1639,14 +1659,30 @@ export function SportsAdmin() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleActivate = async (id: number) => {
+  const handleActivate = (id: number) => {
+    const tournament = activeTournaments.find(t => t.id === id);
+    const name = tournament?.name || "Tournament";
+    setActivatingTournament({ id, name });
+  };
+
+  const handleConfirmActivate = async (config: RegistrationNotifConfig) => {
+    if (!activatingTournament) return;
+    // Status update is the critical step — throw on failure so modal stays open
+    await sportsService.updateTournamentStatus(activatingTournament.id, "REGISTRATION_OPEN");
+    setActivatingTournament(null);
+    refreshTournaments();
+    refreshEvents();
+    // Notification dispatch is secondary — warn but don't block
     try {
-      await sportsService.updateTournamentStatus(id, "REGISTRATION_OPEN");
-      toast.success("Tournament is now open for registration!");
-      refreshEvents();
-      refreshTournaments();
-    } catch (err) {
-      toast.error("Failed to update tournament status");
+      await notificationService.sendRegistrationOpenNotification(activatingTournament.id, {
+        sendEmail: config.sendEmail,
+        sendPush: config.sendPush,
+        sendSms: config.sendSms,
+        message: config.message,
+      });
+      toast.success("Tournament opened for registration! Notifications sent to community.");
+    } catch {
+      toast.warning("Tournament opened for registration. Notifications could not be sent.");
     }
   };
 
@@ -1655,31 +1691,48 @@ export function SportsAdmin() {
     try {
       await sportsService.deleteTournament(id);
       toast.success("Tournament deleted");
-      refreshEvents();
+      refreshTournaments();
     } catch (err) {
       toast.error("Failed to delete tournament");
     }
   };
 
   // ─── Registration handlers ────────────────────────────────────────────
-  const handleViewRegistrations = async (eventId: number) => {
-    if (viewingEventId === eventId) {
+  const handleViewPlayers = async (eventId: number) => {
+    if (viewingEventId === eventId && viewMode === "players") {
       setViewingEventId(null);
       setRegistrations([]);
+      return;
+    }
+    setViewingEventId(eventId);
+    setViewMode("players");
+    setNominatedCaptains([]);
+    setLoadingRegs(true);
+    try {
+      const regs = await sportsService.getTournamentRegistrations(eventId);
+      setRegistrations(regs);
+    } catch {
+      toast.error("Failed to load players");
+    } finally {
+      setLoadingRegs(false);
+    }
+  };
+
+  const handleViewCaptains = async (eventId: number) => {
+    if (viewingEventId === eventId && viewMode === "captains") {
+      setViewingEventId(null);
       setNominatedCaptains([]);
       return;
     }
     setViewingEventId(eventId);
+    setViewMode("captains");
+    setRegistrations([]);
     setLoadingRegs(true);
     try {
-      const [regs, caps] = await Promise.all([
-        sportsService.getTournamentRegistrations(eventId),
-        auctionService.getNominatedCaptains(eventId)
-      ]);
-      setRegistrations(regs);
+      const caps = await auctionService.getNominatedCaptains(eventId);
       setNominatedCaptains(caps);
     } catch {
-      toast.error("Failed to load details");
+      toast.error("Failed to load captains");
     } finally {
       setLoadingRegs(false);
     }
@@ -1689,8 +1742,7 @@ export function SportsAdmin() {
     try {
       await sportsService.confirmRegistration(regId);
       toast.success("Player confirmed!");
-      // Refresh registrations list
-      if (viewingEventId) {
+      if (viewingEventId && viewMode === "players") {
         const regs = await sportsService.getTournamentRegistrations(viewingEventId);
         setRegistrations(regs);
       }
@@ -1701,17 +1753,10 @@ export function SportsAdmin() {
 
   const handleConfirmCaptain = async (id: number, confirm: boolean) => {
     try {
-      // In captain mode, the 'id' passed is the Team ID
       await auctionService.confirmCaptainByTeamId(id, confirm);
       toast.success(confirm ? "Captain confirmed!" : "Captain nomination rejected!");
-      
-      // Refresh both lists to keep UI in sync
-      if (viewingEventId) {
-        const [regs, caps] = await Promise.all([
-          sportsService.getTournamentRegistrations(viewingEventId),
-          auctionService.getNominatedCaptains(viewingEventId)
-        ]);
-        setRegistrations(regs);
+      if (viewingEventId && viewMode === "captains") {
+        const caps = await auctionService.getNominatedCaptains(viewingEventId);
         setNominatedCaptains(caps);
       }
     } catch {
@@ -2272,9 +2317,10 @@ export function SportsAdmin() {
               events={liveEvents}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              onViewRegistrations={handleViewRegistrations}
-              showViewRegistrations
+              onViewPlayers={handleViewPlayers}
+              onViewCaptains={handleViewCaptains}
               viewingEventId={viewingEventId}
+              viewMode={viewMode}
               registrations={registrations}
               nominatedCaptains={nominatedCaptains}
               loadingRegs={loadingRegs}
@@ -3991,6 +4037,15 @@ export function SportsAdmin() {
           setEditingVenueId(selectedVenueDetails.id);
         } : undefined}
       />
+
+      {/* ── Open for Registration Notification Modal ── */}
+      {activatingTournament && (
+        <RegistrationOpenModal
+          tournament={activatingTournament}
+          onConfirm={handleConfirmActivate}
+          onClose={() => setActivatingTournament(null)}
+        />
+      )}
     </div>
   );
 }

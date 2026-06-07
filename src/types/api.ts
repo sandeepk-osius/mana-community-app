@@ -496,3 +496,12 @@ export interface SportFormEntry {
   editingSportId: number | null;
   events: SportFormEvent[];
 }
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export interface RegistrationOpenNotificationRequest {
+  sendEmail: boolean;
+  sendPush: boolean;
+  sendSms: boolean;
+  message?: string;
+}
