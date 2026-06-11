@@ -190,14 +190,14 @@ export function TournamentScheduler() {
           <h1 className="text-2xl font-bold text-slate-100 font-['Bebas_Neue'] tracking-wide">TOURNAMENT SCHEDULER</h1>
           <p className="text-sm text-slate-400">CommUnity Sports Command Center</p>
         </div>
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-[#c8ff00] hover:bg-[#a3cc00] text-black font-semibold py-2 px-4 rounded-lg transition-colors">
+        <button onClick={() => openModal()} className="flex items-center gap-2 bg-[#F5A623] hover:bg-[#e09212] text-black font-semibold py-2 px-4 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> New Schedule Config
         </button>
       </div>
 
       <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-xl overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 text-[#c8ff00] animate-spin" /></div>
+          <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 text-[#F5A623] animate-spin" /></div>
         ) : configs.length === 0 ? (
           <div className="text-center p-16">
             <Trophy className="w-12 h-12 text-slate-500 mx-auto mb-4" />
@@ -221,7 +221,7 @@ export function TournamentScheduler() {
               <tbody className="divide-y divide-[#2a3a5c]/50">
                 {configs.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="p-4 text-sm font-semibold text-[#c8ff00]">{c.tournamentName}</td>
+                    <td className="p-4 text-sm font-semibold text-[#F5A623]">{c.tournamentName}</td>
                     <td className="p-4 text-sm text-slate-300">{formatType(c.tournamentType)}</td>
                     <td className="p-4 text-sm text-slate-400">{c.eventName || "—"}</td>
                     <td className="p-4 text-sm text-slate-300">{c.totalTeams || "—"}</td>
@@ -230,13 +230,13 @@ export function TournamentScheduler() {
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wide
                         ${c.status === "DRAFT" ? "bg-slate-700/50 text-slate-400" :
                           c.status === "ACTIVE" ? "bg-green-500/10 text-green-400" :
-                          c.status === "LIVE" ? "bg-[#c8ff00]/10 text-[#c8ff00]" :
+                          c.status === "LIVE" ? "bg-[#F5A623]/10 text-[#F5A623]" :
                           "bg-blue-500/10 text-blue-400"}`}>
                         {c.status}
                       </span>
                     </td>
                     <td className="p-4">
-                      <button onClick={() => openModal(c)} className="text-sm font-medium text-[#c8ff00] hover:text-[#a3cc00]">
+                      <button onClick={() => openModal(c)} className="text-sm font-medium text-[#F5A623] hover:text-[#e09212]">
                         Edit
                       </button>
                     </td>
@@ -253,7 +253,7 @@ export function TournamentScheduler() {
         <div className="fixed inset-0 z-50 flex justify-center pt-10 sm:pt-20 px-4 bg-black/70 backdrop-blur-sm overflow-y-auto pb-10">
           <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-xl w-full max-w-3xl flex flex-col shadow-2xl relative h-max">
             <div className="flex items-center justify-between p-6 border-b border-[#2a3a5c]">
-              <h2 className="text-xl font-bold text-[#c8ff00] font-['Bebas_Neue'] tracking-wider">
+              <h2 className="text-xl font-bold text-[#F5A623] font-['Bebas_Neue'] tracking-wider">
                 {editingId ? "Edit Tournament Configuration" : "New Tournament Configuration"}
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
@@ -286,7 +286,7 @@ export function TournamentScheduler() {
                     } else {
                       setFName("");
                     }
-                  }} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]">
+                  }} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]">
                     <option value="">— Select Tournament Name —</option>
                     {events.map((e) => (
                       <option key={e.id} value={e.id}>{e.name} ({e.sportName})</option>
@@ -295,7 +295,7 @@ export function TournamentScheduler() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Sport Event</label>
-                  <select value={fEvent} onChange={(e) => setFEvent(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]">
+                  <select value={fEvent} onChange={(e) => setFEvent(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]">
                     <option value="">— Select Event —</option>
                     {events.map((e) => (
                       <option key={e.id} value={e.id}>{e.name} ({e.sportName})</option>
@@ -309,8 +309,8 @@ export function TournamentScheduler() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {types.map((t) => (
                     <button key={t.id} type="button" onClick={() => setFType(t.id)}
-                      className={`p-3 rounded-lg border text-left transition-all ${fType === t.id ? "bg-[#c8ff00]/10 border-[#c8ff00] shadow-[0_0_15px_rgba(200,255,0,0.15)]" : "bg-[#0f1729] border-[#2a3a5c] hover:border-slate-500"}`}>
-                      <div className={`font-bold font-['Bebas_Neue'] tracking-wide text-lg ${fType === t.id ? "text-[#c8ff00]" : "text-slate-200"}`}>{t.name}</div>
+                      className={`p-3 rounded-lg border text-left transition-all ${fType === t.id ? "bg-[#F5A623]/10 border-[#F5A623] shadow-[0_0_15px_rgba(200,255,0,0.15)]" : "bg-[#0f1729] border-[#2a3a5c] hover:border-slate-500"}`}>
+                      <div className={`font-bold font-['Bebas_Neue'] tracking-wide text-lg ${fType === t.id ? "text-[#F5A623]" : "text-slate-200"}`}>{t.name}</div>
                       <div className="text-xs text-slate-400 mt-1 leading-snug">{t.description}</div>
                       <div className="text-[10px] mt-2 bg-[#00e5ff]/10 text-[#00e5ff] inline-block px-2 py-0.5 rounded">{t.teamRange} teams</div>
                     </button>
@@ -321,15 +321,15 @@ export function TournamentScheduler() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Teams *</label>
-                  <input type="number" min="2" max="128" value={fTeams} onChange={(e) => setFTeams(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" min="2" max="128" value={fTeams} onChange={(e) => setFTeams(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Start Date *</label>
-                  <input type="date" value={fStartDate} onChange={(e) => setFStartDate(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00] [color-scheme:dark]" />
+                  <input type="date" value={fStartDate} onChange={(e) => setFStartDate(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623] [color-scheme:dark]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">End Date</label>
-                  <input type="date" value={fEndDate} onChange={(e) => setFEndDate(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00] [color-scheme:dark]" />
+                  <input type="date" value={fEndDate} onChange={(e) => setFEndDate(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623] [color-scheme:dark]" />
                 </div>
               </div>
 
@@ -337,11 +337,11 @@ export function TournamentScheduler() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-[#2a3a5c] rounded-lg bg-[#0f1729]/50">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Number of Groups</label>
-                    <input type="number" min="2" max="8" value={fGroups} onChange={(e) => setFGroups(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                    <input type="number" min="2" max="8" value={fGroups} onChange={(e) => setFGroups(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Advancing per Group</label>
-                    <input type="number" min="1" max="8" value={fAdvancing} onChange={(e) => setFAdvancing(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                    <input type="number" min="1" max="8" value={fAdvancing} onChange={(e) => setFAdvancing(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                   </div>
                 </div>
               )}
@@ -349,47 +349,47 @@ export function TournamentScheduler() {
               {fType === "SWISS" && (
                 <div className="p-4 border border-[#2a3a5c] rounded-lg bg-[#0f1729]/50">
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Swiss Rounds</label>
-                  <input type="number" min="1" max="20" value={fSwissRounds} onChange={(e) => setFSwissRounds(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" min="1" max="20" value={fSwissRounds} onChange={(e) => setFSwissRounds(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Duration (min)</label>
-                  <input type="number" value={fDuration} onChange={(e) => setFDuration(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" value={fDuration} onChange={(e) => setFDuration(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Break (min)</label>
-                  <input type="number" value={fBreak} onChange={(e) => setFBreak(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" value={fBreak} onChange={(e) => setFBreak(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Venue</label>
-                  <input value={fVenue} onChange={(e) => setFVenue(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input value={fVenue} onChange={(e) => setFVenue(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Pts Win</label>
-                  <input type="number" value={fPtsWin} onChange={(e) => setFPtsWin(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" value={fPtsWin} onChange={(e) => setFPtsWin(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Pts Draw</label>
-                  <input type="number" value={fPtsDraw} onChange={(e) => setFPtsDraw(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" value={fPtsDraw} onChange={(e) => setFPtsDraw(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Pts Loss</label>
-                  <input type="number" value={fPtsLoss} onChange={(e) => setFPtsLoss(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#c8ff00]" />
+                  <input type="number" value={fPtsLoss} onChange={(e) => setFPtsLoss(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
                 </div>
               </div>
 
               <div className="flex items-center gap-6 pt-2">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
-                  <input type="checkbox" checked={fThirdPlace} onChange={(e) => setFThirdPlace(e.target.checked)} className="w-4 h-4 accent-[#c8ff00]" />
+                  <input type="checkbox" checked={fThirdPlace} onChange={(e) => setFThirdPlace(e.target.checked)} className="w-4 h-4 accent-[#F5A623]" />
                   3rd Place Match
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300">
-                  <input type="checkbox" checked={fSeeding} onChange={(e) => setFSeeding(e.target.checked)} className="w-4 h-4 accent-[#c8ff00]" />
+                  <input type="checkbox" checked={fSeeding} onChange={(e) => setFSeeding(e.target.checked)} className="w-4 h-4 accent-[#F5A623]" />
                   Seeded Draw
                 </label>
               </div>
@@ -400,7 +400,7 @@ export function TournamentScheduler() {
               <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
                 Cancel
               </button>
-              <button disabled={saving} onClick={handleSave} className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#c8ff00] hover:bg-[#a3cc00] text-black font-semibold transition-colors disabled:opacity-50">
+              <button disabled={saving} onClick={handleSave} className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#F5A623] hover:bg-[#e09212] text-black font-semibold transition-colors disabled:opacity-50">
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {editingId ? "Update Configuration" : "Save Configuration"}
               </button>

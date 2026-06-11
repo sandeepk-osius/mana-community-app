@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import type { PlayoffScheduleInput, PlayoffMatchDraft } from "../app/components/scheduler/playoffSchedule";
 
 export interface TournamentTypeInfo {
   id: string;
@@ -79,5 +80,30 @@ export const tournamentService = {
   /** POST /api/tournament/{configId}/manual/matches */
   async scheduleManualMatch(configId: number, matchData: { homeTeamId: string, awayTeamId: string, matchType: string, stage: string, startTime: string }): Promise<string> {
     return apiClient.post<string>(`/tournament/${configId}/manual/matches`, matchData);
+  },
+
+  /** POST /api/tournament/{configId}/matches/bulk - Save all generated matches */
+  async saveMatchesBulk(configId: number, matches: any[]): Promise<any> {
+    return apiClient.post<any>(`/tournament/${configId}/matches/bulk`, { matches });
+  },
+
+  /** GET /api/tournament/{configId}/matches - Fetch all matches for a config */
+  async getMatchesByConfigId(configId: number): Promise<any[]> {
+    return apiClient.get<any[]>(`/tournament/${configId}/matches`);
+  },
+
+  /** PUT /api/tournament/{configId}/matches/status - Update status of all matches */
+  async updateMatchesStatus(configId: number, status: 'SCHEDULED' | 'DRAFT' | 'PUBLISHED'): Promise<any> {
+    return apiClient.put<any>(`/tournament/${configId}/matches/status`, { status });
+  },
+
+  /** DELETE /api/tournament/{configId}/matches - Delete all matches for a config */
+  async deleteMatchesByConfigId(configId: number): Promise<any> {
+    return apiClient.delete<any>(`/tournament/${configId}/matches`);
+  },
+
+  /** POST /api/tournament/playoff/generate - Stateless: generate the playoff (rounds-to-final) bracket */
+  async generatePlayoffBracket(input: PlayoffScheduleInput): Promise<PlayoffMatchDraft[]> {
+    return apiClient.post<PlayoffMatchDraft[]>("/tournament/playoff/generate", input);
   }
 };

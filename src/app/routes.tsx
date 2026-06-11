@@ -74,9 +74,13 @@ export const router = createBrowserRouter([
             path: "register/:eventId", 
             element: <PermissionGuard permission={VIEW_EVENT_REGISTRATIONS}><SportsRegister /></PermissionGuard> 
           },
-          { 
-            path: "schedule", 
-            element: <PermissionGuard permission={VIEW_SPORTS_MENU}><SportsSchedule /></PermissionGuard> 
+          {
+            path: "schedule",
+            element: <PermissionGuard permission={VIEW_SPORTS_MENU}><SportsSchedule /></PermissionGuard>
+          },
+          {
+            path: "schedule/:eventId",
+            element: <PermissionGuard permission={VIEW_SPORTS_MENU}><SportsSchedule /></PermissionGuard>
           },
           {
             path: "auction",

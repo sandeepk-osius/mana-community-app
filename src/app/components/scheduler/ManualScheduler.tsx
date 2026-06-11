@@ -104,9 +104,9 @@ export function ManualScheduler() {
       draggable 
       onDragStart={(e) => handleDragStart(e, team.id)}
       onDragEnd={handleDragEnd}
-      className="bg-[#1a2540] p-3 mb-2 rounded-lg border border-[#2a3a5c] cursor-grab active:cursor-grabbing hover:border-[#c8ff00] hover:shadow-[0_0_10px_rgba(200,255,0,0.2)] transition-all flex items-center group"
+      className="bg-[#1a2540] p-3 mb-2 rounded-lg border border-[#2a3a5c] cursor-grab active:cursor-grabbing hover:border-[#F5A623] hover:shadow-[0_0_10px_rgba(200,255,0,0.2)] transition-all flex items-center group"
     >
-      <GripVertical className="w-4 h-4 text-slate-500 mr-2 group-hover:text-[#c8ff00] transition-colors" />
+      <GripVertical className="w-4 h-4 text-slate-500 mr-2 group-hover:text-[#F5A623] transition-colors" />
       <div className="w-3 h-3 rounded-full mr-3 shadow-sm" style={{ background: team.color }}></div>
       <span className="font-semibold text-slate-200 text-sm tracking-wide">{team.name}</span>
     </div>
@@ -120,13 +120,13 @@ export function ManualScheduler() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 border-b border-[#2a3a5c] pb-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#c8ff00] font-['Bebas_Neue'] tracking-widest">Manual Match Scheduler</h1>
+          <h1 className="text-2xl font-bold text-[#F5A623] font-['Bebas_Neue'] tracking-widest">Manual Match Scheduler</h1>
           <p className="text-sm text-slate-400 mt-1">Drag & Drop Teams to Groups and schedule manual matchups.</p>
         </div>
         <div className="flex bg-[#0f1729] p-1 rounded-lg border border-[#2a3a5c] w-full md:w-auto overflow-x-auto">
-          <button onClick={() => setActiveTab('GROUPS')} className={`whitespace-nowrap px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'GROUPS' ? 'bg-[#c8ff00] text-black shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>1. Group Draw</button>
-          <button onClick={() => setActiveTab('GROUP_STAGE')} className={`whitespace-nowrap px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'GROUP_STAGE' ? 'bg-[#c8ff00] text-black shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>2. Group Matches</button>
-          <button onClick={() => setActiveTab('KNOCKOUT')} className={`whitespace-nowrap px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'KNOCKOUT' ? 'bg-[#c8ff00] text-black shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>3. Knockouts</button>
+          <button onClick={() => setActiveTab('GROUPS')} className={`whitespace-nowrap px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'GROUPS' ? 'bg-[#F5A623] text-black shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>1. Group Draw</button>
+          <button onClick={() => setActiveTab('GROUP_STAGE')} className={`whitespace-nowrap px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'GROUP_STAGE' ? 'bg-[#F5A623] text-black shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>2. Group Matches</button>
+          <button onClick={() => setActiveTab('KNOCKOUT')} className={`whitespace-nowrap px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'KNOCKOUT' ? 'bg-[#F5A623] text-black shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>3. Knockouts</button>
         </div>
       </div>
 
@@ -169,13 +169,13 @@ export function ManualScheduler() {
 
             {/* Group B */}
             <div 
-              className={`bg-[#c8ff00]/5 rounded-xl p-5 border transition-colors min-h-[400px] ${draggedTeam ? 'border-[#c8ff00] shadow-[0_0_15px_rgba(200,255,0,0.1)]' : 'border-[#2a3a5c]'}`}
+              className={`bg-[#F5A623]/5 rounded-xl p-5 border transition-colors min-h-[400px] ${draggedTeam ? 'border-[#F5A623] shadow-[0_0_15px_rgba(200,255,0,0.1)]' : 'border-[#2a3a5c]'}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, 'GROUP_B')}
             >
-              <h3 className="font-bold text-[#c8ff00] uppercase tracking-widest text-xs mb-4 flex justify-between items-center">
+              <h3 className="font-bold text-[#F5A623] uppercase tracking-widest text-xs mb-4 flex justify-between items-center">
                 Group B 
-                <span className="bg-[#c8ff00]/20 text-[#c8ff00] px-2.5 py-0.5 rounded-full text-[10px]">{getTeamsByGroup('GROUP_B').length}</span>
+                <span className="bg-[#F5A623]/20 text-[#F5A623] px-2.5 py-0.5 rounded-full text-[10px]">{getTeamsByGroup('GROUP_B').length}</span>
               </h3>
               {getTeamsByGroup('GROUP_B').map(renderTeamCard)}
             </div>
@@ -190,13 +190,13 @@ export function ManualScheduler() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {/* Form */}
           <div className="lg:col-span-1 bg-[#141c2e] p-6 rounded-2xl border border-[#2a3a5c] shadow-lg h-max">
-            <h3 className="font-bold text-[#c8ff00] mb-6 flex items-center gap-2">
+            <h3 className="font-bold text-[#F5A623] mb-6 flex items-center gap-2">
               <Calendar className="w-5 h-5" /> Schedule Group Match
             </h3>
             <form onSubmit={scheduleMatch} className="space-y-5">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Select Group</label>
-                <select className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#c8ff00] transition-colors" value={matchForm.stage} onChange={e => setMatchForm({...matchForm, stage: e.target.value, type: 'GROUP_STAGE', home: '', away: ''})}>
+                <select className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#F5A623] transition-colors" value={matchForm.stage} onChange={e => setMatchForm({...matchForm, stage: e.target.value, type: 'GROUP_STAGE', home: '', away: ''})}>
                   <option value="GROUP_A">Group A</option>
                   <option value="GROUP_B">Group B</option>
                 </select>
@@ -204,14 +204,14 @@ export function ManualScheduler() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Team 1 (Home)</label>
-                  <select required className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#c8ff00] transition-colors text-sm" value={matchForm.home} onChange={e => setMatchForm({...matchForm, home: e.target.value})}>
+                  <select required className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#F5A623] transition-colors text-sm" value={matchForm.home} onChange={e => setMatchForm({...matchForm, home: e.target.value})}>
                     <option value="">Select...</option>
                     {getTeamsByGroup(matchForm.stage).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Team 2 (Away)</label>
-                  <select required className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#c8ff00] transition-colors text-sm" value={matchForm.away} onChange={e => setMatchForm({...matchForm, away: e.target.value})}>
+                  <select required className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#F5A623] transition-colors text-sm" value={matchForm.away} onChange={e => setMatchForm({...matchForm, away: e.target.value})}>
                     <option value="">Select...</option>
                     {getTeamsByGroup(matchForm.stage).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
@@ -219,9 +219,9 @@ export function ManualScheduler() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Date & Time</label>
-                <input type="datetime-local" required className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#c8ff00] transition-colors [color-scheme:dark]" value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} />
+                <input type="datetime-local" required className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:border-[#F5A623] transition-colors [color-scheme:dark]" value={matchForm.date} onChange={e => setMatchForm({...matchForm, date: e.target.value})} />
               </div>
-              <button type="submit" className="w-full bg-[#c8ff00] text-black font-bold py-3 rounded-lg hover:bg-[#a3cc00] transition-colors mt-2">Schedule Match</button>
+              <button type="submit" className="w-full bg-[#F5A623] text-black font-bold py-3 rounded-lg hover:bg-[#e09212] transition-colors mt-2">Schedule Match</button>
             </form>
           </div>
 
@@ -235,11 +235,11 @@ export function ManualScheduler() {
                 </div>
               ) : (
                 matches.filter(m => m.type === 'GROUP_STAGE').map(m => (
-                  <div key={m.id} className="bg-[#141c2e] p-4 rounded-xl shadow-sm border border-[#2a3a5c] flex justify-between items-center group hover:border-[#c8ff00]/50 transition-colors">
+                  <div key={m.id} className="bg-[#141c2e] p-4 rounded-xl shadow-sm border border-[#2a3a5c] flex justify-between items-center group hover:border-[#F5A623]/50 transition-colors">
                     <div className="flex-1 text-right font-semibold text-slate-200">{m.home}</div>
                     <div className="px-6 flex flex-col items-center">
                       <span className="text-[10px] bg-[#0f1729] border border-[#2a3a5c] text-slate-400 font-bold px-2 py-0.5 rounded uppercase tracking-widest">{m.stage.replace('_', ' ')}</span>
-                      <span className="text-[#c8ff00] font-black my-1 text-lg">VS</span>
+                      <span className="text-[#F5A623] font-black my-1 text-lg">VS</span>
                       <span className="text-[11px] text-slate-500 font-medium">{new Date(m.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                     </div>
                     <div className="flex-1 text-left font-semibold text-slate-200">{m.away}</div>

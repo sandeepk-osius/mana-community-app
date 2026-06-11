@@ -28,9 +28,9 @@ export function ScheduleSaveFooter({
             type="button"
             onClick={onClear}
             disabled={saving}
-            className="flex gap-1 text-sm font-semibold items-center text-red-400 hover:text-red-300 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="flex gap-1 text-xs font-bold items-center bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <Undo2 className="w-4 h-4" />
+            <Undo2 className="w-3.5 h-3.5" />
             <span>Clear</span>
           </button>
 
@@ -38,9 +38,9 @@ export function ScheduleSaveFooter({
             type="button"
             onClick={onSaveDraft}
             disabled={!canSave || saving}
-            className="flex gap-1 text-sm font-semibold items-center px-4 py-2 rounded-lg border border-[#2a3a5c] text-slate-300 hover:border-[#c8ff00]/40 hover:text-[#c8ff00] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#2a3a5c] disabled:hover:text-slate-300"
+            className="flex gap-1 text-xs font-bold items-center px-3 py-1.5 rounded-lg bg-[#1a2540] border border-[#2e3f6e] text-slate-200 hover:border-[#F5A623] hover:text-[#F5A623] hover:bg-[#223154] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#2a3a5c] disabled:hover:text-slate-300 cursor-pointer"
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="w-3.5 h-3.5" />
             <span>Save As Draft</span>
           </button>
 
@@ -48,16 +48,16 @@ export function ScheduleSaveFooter({
             type="button"
             onClick={onSavePublish}
             disabled={!canSave || saving}
-            className="flex gap-1 text-sm font-semibold items-center px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+            className="flex gap-1 text-xs font-bold items-center px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 disabled:hover:text-white cursor-pointer"
           >
-            <CircleCheckBig className="w-4 h-4" />
+            <CircleCheckBig className="w-3.5 h-3.5" />
             <span>{saving ? 'Saving...' : 'Save & Publish'}</span>
           </button>
         </div>
 
         <div className="hidden md:block bg-[#0f1729] border border-[#2a3a5c] rounded-xl overflow-hidden p-2">
           <div className="flex gap-5 items-center justify-center py-2">
-            <div className="border border-[#c8ff00]/50 rounded-xl overflow-hidden shrink-0">
+            <div className="border border-[#F5A623]/50 rounded-xl overflow-hidden shrink-0">
               <img
                 src={SCHEDULER_IMAGE_URL}
                 alt="Scheduler"
@@ -70,9 +70,9 @@ export function ScheduleSaveFooter({
             <button
               type="button"
               onClick={onDragDropScheduler}
-              className="flex gap-1 text-sm font-semibold items-center px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black transition-colors shrink-0"
+              className="flex gap-1 text-xs font-bold items-center px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors shrink-0 cursor-pointer"
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-3.5 h-3.5" />
               <span>Drag &amp; Drop Scheduler</span>
             </button>
           </div>

@@ -40,6 +40,7 @@ export interface OpenRegistration {
   status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | string;
   registrationId?: number;
   auctionStatus?: string;
+  isTeamSport?: boolean;
 }
 
 export interface Notification {

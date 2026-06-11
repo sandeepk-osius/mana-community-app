@@ -255,7 +255,7 @@ function NextMatchTimer({ nextMatch }: { nextMatch: NextMatchData | null }) {
 export function SportsDashboard() {
   const { user, hasPermission, hasAnyPermission } = useAuth();
   const navigate = useNavigate();
-  const [liveEvents, setLiveEvents] = useState<any[]>(SPORTS_DATA.upcomingEvents);
+  const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [openRegs, setOpenRegs] = useState<OpenRegistration[]>([]);
   const [closedRegs, setClosedRegs] = useState<OpenRegistration[]>([]);
   const [myRegistrations, setMyRegistrations] = useState<any[]>([]);
@@ -274,12 +274,14 @@ export function SportsDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  const [stats, setStats] = useState(SPORTS_DATA.stats);
+  const [stats, setStats] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [nextMatch, setNextMatch] = useState<NextMatchData | null>(null);
 
   const canManageCaptainNominations = hasAnyPermission(CREATE_EDIT_PLAYER_POOL, CREATE_EDIT_SPORTS_MAIN);
   const confirmedMyRegistrations = myRegistrations.filter(r => r.status === "CONFIRMED");
+  const teamClosedRegs = closedRegs.filter(r => r.isTeamSport);
+  const confirmedTeamRegistrations = confirmedMyRegistrations.filter(r => r.matchType === "TEAM");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -320,6 +322,7 @@ export function SportsDashboard() {
           action: actionVal,
           status: e.registrationStatus ?? "REGISTRATION_OPEN",
           registrationId: myReg?.id,
+          isTeamSport: Array.isArray(e.format) && e.format.includes("TEAM"),
         };
       }));
 
@@ -338,6 +341,7 @@ export function SportsDashboard() {
           action: "View" as const,
           status: e.registrationStatus ?? "REGISTRATION_CLOSED",
           auctionStatus: e.auctionStatus ?? "DRAFT",
+          isTeamSport: Array.isArray(e.format) && e.format.includes("TEAM"),
         })));
       } catch {
         setClosedRegs([]);
@@ -402,9 +406,9 @@ export function SportsDashboard() {
         textAfter: `. Venue: ${e.venue?.name ?? "TBD"}`,
         time: "Just now"
       }));
-      setNotifications(notifs.length ? notifs : SPORTS_DATA.notifications);
+      setNotifications(notifs);
     } catch {
-      setError("Could not load live events — showing sample data.");
+      setError("Could not load live events.");
     } finally {
       setLoading(false);
     }
@@ -501,10 +505,20 @@ export function SportsDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map(s => {
-          const bc = badgeMap[s.badgeType as keyof typeof badgeMap];
-          return <StatCard key={s.id} value={s.value} label={s.label} badge={s.badge} color={s.color} badgeBg={bc.bg} badgeText={bc.text} />;
-        })}
+        {loading ? (
+          Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="bg-[#1a2540] border border-[#2a3a5c] rounded-xl p-4 animate-pulse">
+              <div className="h-8 bg-[#2a3a5c]/60 rounded w-1/3"></div>
+              <div className="h-4 bg-[#2a3a5c]/40 rounded w-2/3 mt-2"></div>
+              <div className="h-4 bg-[#2a3a5c]/30 rounded w-1/2 mt-3"></div>
+            </div>
+          ))
+        ) : (
+          stats.map(s => {
+            const bc = badgeMap[s.badgeType as keyof typeof badgeMap] || { bg: "rgba(0,0,0,0.1)", text: "#94a3b8" };
+            return <StatCard key={s.id} value={s.value} label={s.label} badge={s.badge} color={s.color} badgeBg={bc.bg} badgeText={bc.text} />;
+          })
+        )}
       </div>
 
       {/* Main Grid */}
@@ -513,16 +527,23 @@ export function SportsDashboard() {
           {/* Upcoming events */}
           <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-xl p-4">
             <div className="text-xs font-medium text-[#94a3b8] uppercase tracking-widest mb-3">Your Upcoming Events</div>
-            {liveEvents.length === 0 && <div className="text-center py-4 text-[#475569] text-xs">No upcoming events</div>}
-            {liveEvents.map(ev => {
+            {loading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-6 h-6 text-[#f97316] animate-spin" />
+              </div>
+            ) : liveEvents.length === 0 ? (
+              <div className="text-center py-4 text-[#475569] text-xs">No upcoming events</div>
+            ) : (
+              liveEvents.map(ev => {
               const myReg = myRegistrations.find(r => r.event.id === ev.id);
               const isConfirmed = myReg?.status === "CONFIRMED";
               const isNominated = myReg?.captainNomination;
+              const isTeamReg = myReg?.matchType === "TEAM";
 
               return (
                 <div key={ev.id} className="mb-3">
                   <EventRow event={ev} onClick={() => toast.info(`Selected: ${ev.name}`)} />
-                  {isConfirmed && (
+                  {isConfirmed && isTeamReg && (
                     <div className="flex items-center justify-between px-3 py-2 bg-[#1a2540]/40 rounded-b-lg border-x border-b border-[#2a3a5c] -mt-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-[#94a3b8]">Captaincy Status:</span>
@@ -557,7 +578,8 @@ export function SportsDashboard() {
                   )}
                 </div>
               );
-            })}
+            })
+            )}
           </div>
           {/* Open registrations */}
           <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-xl p-4">
@@ -655,28 +677,27 @@ export function SportsDashboard() {
                     }
                   }}
                   onScheduleMatches={(evt) => {
-                    toast.info(`Scheduling matches for ${evt.name}...`);
-                    // navigate(`/sports/schedule/${evt.id}`);
+                    navigate(`/sports/schedule/${evt.id}`);
                   }}
                 />
               ))}
             </div>
           )}
 
-          {/* Unified Captain Nominations Section */}
-          {(canManageCaptainNominations || confirmedMyRegistrations.length > 0) && (
+          {/* Unified Captain Nominations Section — team sports only */}
+          {(canManageCaptainNominations ? teamClosedRegs.length > 0 : confirmedTeamRegistrations.length > 0) && (
             <div className="bg-[#141c2e] border border-[#2a3a5c] rounded-xl p-4 mt-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-xs font-medium text-[#94a3b8] uppercase tracking-widest">Captain Nominations</div>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-400">
-                  {canManageCaptainNominations ? `${closedRegs.length} Available` : "Registration Confirmed ✓"}
+                  {canManageCaptainNominations ? `${teamClosedRegs.length} Available` : "Registration Confirmed ✓"}
                 </span>
               </div>
 
               <div className="space-y-3">
-                {/* Admin View: Manage all closed registrations */}
+                {/* Admin View: team events only */}
                 {canManageCaptainNominations ? (
-                  closedRegs.map(item => (
+                  teamClosedRegs.map(item => (
                     <div key={item.id}>
                       <RegCard
                         item={{ ...item, action: "Register Captain" as any }}
@@ -697,8 +718,8 @@ export function SportsDashboard() {
                     </div>
                   ))
                 ) : (
-                  /* User View: Self-nomination for confirmed events */
-                  confirmedMyRegistrations.map(reg => {
+                  /* User View: Self-nomination for confirmed team events only */
+                  confirmedTeamRegistrations.map(reg => {
                     //const capNom = captainRegistration.find(c => c.config?.event?.id === reg.event.id);
                     const capNom = captainRegistration.find(c => c.eventId === reg.event.id)
                     const isNominated = capNom?.captainNomination;
@@ -752,20 +773,27 @@ export function SportsDashboard() {
               <Bell className="w-3 h-3" /> Notifications
             </div>
             <div className="space-y-0">
-              {notifications.map((n, i) => (
-                <div key={n.id} className={`flex items-start gap-3 py-2.5 ${i < notifications.length - 1 ? "border-b border-[#2a3a5c]" : ""}`}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: n.iconBg, color: n.iconColor }}>
-                    {n.icon}
-                  </div>
-                  <div>
-                    <div className="text-xs text-[#f1f5f9] leading-relaxed">
-                      {n.text} <strong className="text-[#f1f5f9]">{n.bold}</strong>{n.textAfter}
-                    </div>
-                    <div className="text-[10px] text-[#94a3b8] mt-1">{n.time}</div>
-                  </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-6 h-6 text-[#f97316] animate-spin" />
                 </div>
-              ))}
-              {notifications.length === 0 && <p className="text-[10px] text-[#475569] text-center py-4">No new notifications</p>}
+              ) : notifications.length === 0 ? (
+                <p className="text-[10px] text-[#475569] text-center py-4">No new notifications</p>
+              ) : (
+                notifications.map((n, i) => (
+                  <div key={n.id} className={`flex items-start gap-3 py-2.5 ${i < notifications.length - 1 ? "border-b border-[#2a3a5c]" : ""}`}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: n.iconBg, color: n.iconColor }}>
+                      {n.icon}
+                    </div>
+                    <div>
+                      <div className="text-xs text-[#f1f5f9] leading-relaxed">
+                        {n.text} <strong className="text-[#f1f5f9]">{n.bold}</strong>{n.textAfter}
+                      </div>
+                      <div className="text-[10px] text-[#94a3b8] mt-1">{n.time}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 .playoff-bracket .bracket {
-  height: 505px;
+  min-height: 505px;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .playoff-bracket .matchup {
@@ -10,27 +10,26 @@
 
 .playoff-bracket .connector {
   position: absolute;
-  right: -12px;
+  left: -15px;
   top: 50%;
-  width: 12px;
-  border-right: 1px dotted #64748b;
+  border-left: 3px solid #FFFDFC;
   pointer-events: none;
 }
 
 .playoff-bracket .merger-right {
   position: absolute;
-  right: -12px;
+  right: -15px;
   bottom: 50%;
-  width: 12px;
-  border-bottom: 1px dotted #64748b;
+  width: 15px;
+  border-bottom: 3px solid #FFFDFC;
   pointer-events: none;
 }
 
 .playoff-bracket .merger-left {
   position: absolute;
-  left: -12px;
+  left: -15px;
   bottom: 50%;
-  width: 12px;
-  border-bottom: 1px dotted #64748b;
+  width: 15px;
+  border-bottom: 3px solid #FFFDFC;
   pointer-events: none;
 }
