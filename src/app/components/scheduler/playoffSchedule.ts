@@ -26,8 +26,8 @@ export type PlayoffMatchDraft = {
   date: string;
   time: string;
   duration: number;
-  venue: string;
-  court: string;
+  venueId: number | null;
+  courtId: string | null;
   moveSubsMatches: boolean;
 };
 
@@ -40,8 +40,8 @@ export type PlayoffScheduleInput = {
   startTime: string;
   matchDurationMinutes: number;
   breakMinutes: number;
-  venue: string;
-  court: string;
+  venueId: number | null;
+  courtId: string | null;
 };
 
 export function parseBreakMinutes(breakTime: string): number {

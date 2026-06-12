@@ -4,6 +4,8 @@ import { useAuth } from "../../../contexts/AuthContext";
 
 import { tournamentService } from "../../../services/tournamentService";
 import type { TournamentTypeInfo, EventInfo, ConfigInfo } from "../../../services/tournamentService";
+import { venueService } from "../../../services/venueService";
+import type { Venue } from "../../../types/api";
 
 export function TournamentScheduler() {
   const { token } = useAuth() as any;
@@ -27,13 +29,14 @@ export function TournamentScheduler() {
   const [fSwissRounds, setFSwissRounds] = useState("3");
   const [fDuration, setFDuration] = useState("90");
   const [fBreak, setFBreak] = useState("30");
-  const [fVenue, setFVenue] = useState("");
+  const [fVenueId, setFVenueId] = useState<number | null>(null);
   const [fPtsWin, setFPtsWin] = useState("2");
   const [fPtsDraw, setFPtsDraw] = useState("1");
   const [fPtsLoss, setFPtsLoss] = useState("0");
   const [fThirdPlace, setFThirdPlace] = useState(true);
   const [fSeeding, setFSeeding] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [venueList, setVenueList] = useState<Venue[]>([]);
 
   useEffect(() => {
     loadData();
@@ -66,6 +69,13 @@ export function TournamentScheduler() {
         { id: "SUPER_LEAGUE", name: "Super League", description: "IPL-style playoffs", teamRange: "6-10", formatNote: "League + 4" },
       ]);
     }
+    // Load venues
+    try {
+      const v = await venueService.getVenues();
+      setVenueList(v);
+    } catch (e) {
+      console.error('Failed to load venues', e);
+    }
     setLoading(false);
   };
 
@@ -87,7 +97,7 @@ export function TournamentScheduler() {
     setFSwissRounds("3");
     setFDuration("90");
     setFBreak("30");
-    setFVenue("");
+    setFVenueId(null);
     setFPtsWin("2");
     setFPtsDraw("1");
     setFPtsLoss("0");
@@ -109,7 +119,7 @@ export function TournamentScheduler() {
       setFSwissRounds(config.swissRounds ? config.swissRounds.toString() : "3");
       setFDuration(config.matchDurationMinutes ? config.matchDurationMinutes.toString() : "90");
       setFBreak(config.breakBetweenMatchesMinutes ? config.breakBetweenMatchesMinutes.toString() : "30");
-      setFVenue(config.venueName || "");
+      setFVenueId(config.venueId ?? null);
       setFPtsWin(config.pointsForWin !== undefined ? config.pointsForWin.toString() : "2");
       setFPtsDraw(config.pointsForDraw !== undefined ? config.pointsForDraw.toString() : "1");
       setFPtsLoss(config.pointsForLoss !== undefined ? config.pointsForLoss.toString() : "0");
@@ -149,7 +159,7 @@ export function TournamentScheduler() {
       endDate: fEndDate || null,
       matchDurationMinutes: Number(fDuration) || 90,
       breakBetweenMatchesMinutes: Number(fBreak) || 30,
-      venueName: fVenue || null,
+      venueId: fVenueId,
       pointsForWin: Number(fPtsWin),
       pointsForDraw: Number(fPtsDraw),
       pointsForLoss: Number(fPtsLoss),
@@ -280,8 +290,8 @@ export function TournamentScheduler() {
                       if (matchedEvent.eventDateEnd) {
                         setFEndDate(matchedEvent.eventDateEnd);
                       }
-                      if (matchedEvent.venueName) {
-                        setFVenue(matchedEvent.venueName);
+                      if (matchedEvent.venueId) {
+                        setFVenueId(matchedEvent.venueId);
                       }
                     } else {
                       setFName("");
@@ -364,7 +374,10 @@ export function TournamentScheduler() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Venue</label>
-                  <input value={fVenue} onChange={(e) => setFVenue(e.target.value)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]" />
+                  <select value={fVenueId ?? ''} onChange={(e) => setFVenueId(e.target.value ? Number(e.target.value) : null)} className="w-full bg-[#0f1729] border border-[#2a3a5c] rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-[#F5A623]">
+                    <option value="">— Select Venue —</option>
+                    {venueList.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
                 </div>
               </div>
 

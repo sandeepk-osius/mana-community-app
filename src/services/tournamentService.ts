@@ -20,7 +20,7 @@ export interface EventInfo {
   eventDateEnd: string;
   status: string;
   totalTeams: number;
-  venueName: string;
+  venueId?: number;
 }
 
 export interface ConfigInfo {
@@ -38,7 +38,7 @@ export interface ConfigInfo {
   swissRounds?: number;
   matchDurationMinutes?: number;
   breakBetweenMatchesMinutes?: number;
-  venueName?: string;
+  venueId?: number;
   pointsForWin?: number;
   pointsForDraw?: number;
   pointsForLoss?: number;
@@ -105,5 +105,22 @@ export const tournamentService = {
   /** POST /api/tournament/playoff/generate - Stateless: generate the playoff (rounds-to-final) bracket */
   async generatePlayoffBracket(input: PlayoffScheduleInput): Promise<PlayoffMatchDraft[]> {
     return apiClient.post<PlayoffMatchDraft[]>("/tournament/playoff/generate", input);
+  },
+
+  /**
+   * POST /api/tournament/schedule/save - Unified, deferred transactional save.
+   * Persists the config + all customized matches together in one transaction.
+   * Replaces the separate createConfig + saveMatchesBulk + updateMatchesStatus calls.
+   */
+  async saveSchedule(payload: {
+    configId: number | null;
+    status: "DRAFT" | "PUBLISHED";
+    config: any;
+    matches: any[];
+  }): Promise<{ config: ConfigInfo; savedMatches: number }> {
+    return apiClient.post<{ config: ConfigInfo; savedMatches: number }>(
+      "/tournament/schedule/save",
+      payload
+    );
   }
 };

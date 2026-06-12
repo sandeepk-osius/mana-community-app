@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { Pencil, MapPin } from 'lucide-react';
 import type { PlayoffMatchDraft, PlayoffParticipantRef } from './playoffSchedule';
 import './PlayoffBracketView.css';
 
@@ -8,6 +8,8 @@ const DEFAULT_AVATAR =
 type Props = {
   matches: PlayoffMatchDraft[];
   onEditMatch?: (match: PlayoffMatchDraft) => void;
+  resolveVenueName?: (venueId: number | null) => string;
+  resolveCourtName?: (courtId: string | null) => string;
 };
 
 function formatBracketDateOnly(dateStr: string): string {
@@ -89,6 +91,8 @@ type MatchCardProps = {
   showMergerRight?: boolean;
   showMergerLeft?: boolean;
   onEdit?: () => void;
+  venueName?: string;
+  courtName?: string;
 };
 
 function MatchCard({
@@ -100,6 +104,8 @@ function MatchCard({
   showMergerRight = false,
   showMergerLeft = false,
   onEdit,
+  venueName,
+  courtName,
 }: MatchCardProps) {
   return (
     <div
@@ -144,9 +150,12 @@ function MatchCard({
         {showMergerLeft && <div className="merger-left" style={{ width: 20 }} aria-hidden />}
       </div>
 
-      <div className="flex flex-row gap-3 justify-between items-center mt-1">
-        <span className="font-bold text-[#fffdf0] text-[11px] line-clamp-1">{match.venue}</span>
-        <span className="font-bold text-[#fffdf0] text-[11px] line-clamp-1">{match.court}</span>
+      {/* Assigned venue & court — e.g. "LE Shuttle , Court 1" */}
+      <div className="flex flex-row gap-1.5 items-center mt-1">
+        <MapPin className="w-3 h-3 text-[#F5A623] shrink-0" />
+        <span className="font-bold text-[#fffdf0] text-[11px] line-clamp-1" title={[venueName, courtName].filter(Boolean).join(' , ')}>
+          {[venueName, courtName].filter(Boolean).join(' , ') || 'TBD'}
+        </span>
       </div>
     </div>
   );
@@ -197,7 +206,7 @@ function ResultsColumn({ finalMatchId, top }: { finalMatchId?: string; top: numb
   );
 }
 
-export function PlayoffBracketView({ matches, onEditMatch }: Props) {
+export function PlayoffBracketView({ matches, onEditMatch, resolveVenueName, resolveCourtName }: Props) {
   if (matches.length === 0) return null;
 
   const bracketMatches = matches.filter(m => m.round !== 'THIRD_PLACE');
@@ -322,6 +331,8 @@ export function PlayoffBracketView({ matches, onEditMatch }: Props) {
                       showMergerRight={!isLastRound}
                       showMergerLeft={colIdx > 0}
                       onEdit={onEditMatch ? () => onEditMatch(m) : undefined}
+                      venueName={resolveVenueName ? resolveVenueName(m.venueId) : undefined}
+                      courtName={resolveCourtName ? resolveCourtName(m.courtId) : undefined}
                     />
                   );
                 })}

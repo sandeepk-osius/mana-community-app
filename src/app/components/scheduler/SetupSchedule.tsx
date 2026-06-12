@@ -240,6 +240,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
   const [selectedVenues, setSelectedVenues] = useState<number[]>([]);
   const [venueAssignType, setVenueAssignType] = useState('Random');
   const [expandedVenue, setExpandedVenue] = useState<number | null>(null);
+  // Selected courts per venue — keyed by venue id, value = list of selected court names
+  const [selectedCourts, setSelectedCourts] = useState<Record<number, string[]>>({});
 
   // Event selection
   const [selectedEvent, setSelectedEvent] = useState('');
@@ -281,8 +283,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
     date: '',
     time: '',
     duration: 30,
-    venue: '',
-    court: '',
+    venueId: null as number | null,
+    courtId: null as string | null,
     moveSubsMatches: false,
   });
 
@@ -379,9 +381,71 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
     setSelectedVenues(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
   };
 
+  /** Toggle a court selection within a venue — supports single or multiple courts. */
+  const toggleCourt = (venueId: number, courtName: string) => {
+    setSelectedCourts(prev => {
+      const current = prev[venueId] || [];
+      const next = current.includes(courtName)
+        ? current.filter(c => c !== courtName)
+        : [...current, courtName];
+      return { ...prev, [venueId]: next };
+    });
+  };
+
+  /** Selected venues that have courts available but none selected yet. */
+  const venuesNeedingCourt = () =>
+    selectedVenues
+      .map(vid => venues.find(v => v.id === vid))
+      .filter((v): v is Venue =>
+        !!v && !!v.courts && v.courts.length > 0 && (selectedCourts[v.id]?.length || 0) === 0);
+
+  /**
+   * Resolve the court id to assign to a match. Prefers the user's selected
+   * courts for the venue, distributing matches across them round-robin by index.
+   * Falls back to the venue's first court, or null if the venue has no courts.
+   */
+  const resolveCourtId = (venueId: number | null, index: number): string | null => {
+    if (!venueId) return null;
+    const venue = venues.find(v => v.id === venueId);
+    if (!venue?.courts || venue.courts.length === 0) return null;
+    const selectedNames = selectedCourts[venueId] || [];
+    const pool = selectedNames.length > 0
+      ? venue.courts.filter(c => selectedNames.includes(c.name))
+      : venue.courts;
+    const chosen = pool.length > 0 ? pool[index % pool.length] : venue.courts[0];
+    return chosen?.id ?? null;
+  };
+
+  /** Resolve a venue id to its display name (for showing assigned venue per match). */
+  const resolveVenueName = (venueId: number | null): string =>
+    venueId ? (venues.find(v => v.id === venueId)?.name ?? '') : '';
+
+  /** Resolve a court id to its display name across all venues' courts. */
+  const resolveCourtName = (courtId: string | null): string => {
+    if (courtId == null) return '';
+    for (const v of venues) {
+      const c = v.courts?.find(ct => String(ct.id) === String(courtId));
+      if (c) return c.name;
+    }
+    return '';
+  };
+
+  /** Returns the existing tournament_config for the selected event, if one already exists. */
+  const existingConfigForEvent = () =>
+    selectedEvent ? configs.find(c => c.eventId === Number(selectedEvent)) : undefined;
+
   const validateScheduleConfig = () => {
     if (!format) { setToast('Please select a format'); return false; }
     if (!participants || Number(participants) < 2) { setToast('Enter valid participants'); return false; }
+    if (selectedVenues.length === 0) { setToast('Please select at least one venue in Venue Configuration'); return false; }
+    // For every selected venue that has courts available, require at least one court to be selected.
+    for (const vid of selectedVenues) {
+      const venue = venues.find(v => v.id === vid);
+      if (venue?.courts && venue.courts.length > 0 && (selectedCourts[vid]?.length || 0) === 0) {
+        setToast(`Please select at least one court for venue "${venue.name}"`);
+        return false;
+      }
+    }
     return true;
   };
 
@@ -403,7 +467,7 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
       endDate: endDate || null,
       matchDurationMinutes: Number(matchDuration) || 30,
       breakBetweenMatchesMinutes: parseInt(breakTime) || 10,
-      venueName: selectedVenues.length > 0 ? venues.find(v => v.id === selectedVenues[0])?.name || '' : '',
+      venueId: selectedVenues.length > 0 ? selectedVenues[0] : null,
       pointsForWin: Number(ptsWin),
       pointsForDraw: Number(ptsDraw),
       pointsForLoss: Number(ptsLoss),
@@ -477,29 +541,18 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
 
   /** Step 1 (Group + Knockout): assign groups and generate group-stage matches only. */
   const handleScheduleGroups = async () => {
+    if (existingConfigForEvent()) { setToast('A tournament configuration already exists for this event'); return; }
     if (!validateScheduleConfig()) return;
     setGenerating(true);
     try {
-      const configData = buildScheduleConfigBody();
-      const configResult = await tournamentService.createConfig(configData);
-      console.log('[Schedule Groups] Config created:', configResult);
-
+      // Preview-only: build the group-stage matches in local state. Nothing is
+      // persisted until Save as Draft / Save & Publish (unified /schedule/save).
       buildGroupsState();
-
-      // Save group stage matches to database with SCHEDULED status
-      const allMatches = collectAllMatches();
-      if (allMatches.length > 0 && configResult?.id) {
-        const matchesWithConfigId = allMatches.map(m => ({ ...m, configId: configResult.id, status: 'SCHEDULED' }));
-        console.log('[Schedule Groups] Saving matches to DB:', { configId: configResult.id, matchCount: matchesWithConfigId.length });
-        await tournamentService.saveMatchesBulk(configResult.id, matchesWithConfigId);
-        console.log('[Schedule Groups] Matches saved successfully');
-        setCurrentConfigId(configResult.id);
-      }
 
       setPlayoffsGenerated(false);
       setScheduleGenerated(true);
       setShowSetup(false);
-      setToast('✓ Group schedule generated and saved to database! Configure proceeders, then click Generate Schedule for playoffs.');
+      setToast('✓ Group schedule generated! Configure proceeders, then Generate playoffs and Save when ready.');
     } catch (err: any) {
       console.error('[Schedule Groups] Error:', err);
       setToast('Failed: ' + (err.message || 'Unknown error'));
@@ -533,22 +586,13 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
 
     setGenerating(true);
     try {
-      // Generate the playoff ("rounds to final") bracket on the backend.
-      const draft = await fetchPlayoffDraft();
-
-      // Save playoff matches to database with SCHEDULED status
-      if (currentConfigId) {
-        const allMatches = collectAllMatches(draft);
-        if (allMatches.length > 0) {
-          const matchesWithConfigId = allMatches.map(m => ({ ...m, configId: currentConfigId, status: 'SCHEDULED' }));
-          console.log('[Generate Playoffs] Saving playoff matches to DB:', { configId: currentConfigId, matchCount: matchesWithConfigId.length });
-          await tournamentService.saveMatchesBulk(currentConfigId, matchesWithConfigId);
-          console.log('[Generate Playoffs] Playoff matches saved successfully');
-        }
-      }
+      // Preview-only: generate the playoff ("rounds to final") bracket on the
+      // backend (stateless) and hold it in local state. Nothing is persisted
+      // until the admin clicks Save as Draft / Save & Publish.
+      await fetchPlayoffDraft();
 
       setPlayoffsGenerated(true);
-      setToast('✓ Knockout bracket generated and saved to database!');
+      setToast('✓ Knockout bracket generated! Review and Save when ready.');
     } catch (err: any) {
       console.error('[Generate Playoffs] Error:', err);
       setToast('Failed: ' + (err.message || 'Unknown error'));
@@ -560,41 +604,25 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
 
   /** Single-step generate for Knockout-only and other non-group formats. */
   const handleGenerate = async () => {
+    if (existingConfigForEvent()) { setToast('A tournament configuration already exists for this event'); return; }
     if (!validateScheduleConfig()) return;
     setGenerating(true);
     try {
-      const configData = buildScheduleConfigBody();
-      const configResult = await tournamentService.createConfig(configData);
-      console.log('[Generate] Config created:', configResult);
-
+      // Preview-only: build participants and (for knockout-only) the bracket in
+      // local state. No config or matches are persisted here — that happens on
+      // Save as Draft / Save & Publish via the unified /schedule/save endpoint.
       const numParticipants = Number(participants) || 8;
       const allParts = buildParticipantList(numParticipants);
       setAllParticipantOptions(allParts);
 
-      // For knockout-only, generate the bracket on the backend and cache it.
-      // (Saved with real participants via the Save Draft / Publish action, once
-      // allParticipantOptions state has settled — matching prior behavior.)
       if (isKnockoutOnly) {
         await fetchPlayoffDraft();
-      }
-
-      // Save matches to database with SCHEDULED status
-      const allMatches = collectAllMatches();
-      if (allMatches.length > 0 && configResult?.id) {
-        const matchesWithConfigId = allMatches.map(m => ({ ...m, configId: configResult.id, status: 'SCHEDULED' }));
-        console.log('[Generate] Saving matches to DB:', { configId: configResult.id, matchCount: matchesWithConfigId.length });
-        await tournamentService.saveMatchesBulk(configResult.id, matchesWithConfigId);
-        console.log('[Generate] Matches saved successfully');
-        setCurrentConfigId(configResult.id);
-      }
-
-      if (isKnockoutOnly) {
         setGeneratedGroups([]);
         setPlayoffsGenerated(true);
-        setToast('✓ Knockout schedule generated and saved to database!');
+        setToast('✓ Knockout schedule generated! Review and Save when ready.');
       } else {
         setPlayoffsGenerated(false);
-        setToast('✓ Schedule generated and saved to database!');
+        setToast('✓ Schedule generated! Review and Save when ready.');
       }
 
       setScheduleGenerated(true);
@@ -705,9 +733,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
       defaultDate.setDate(baseDate.getDate() + groupIdx + mIdx * 2);
       const defaultDateStr = defaultDate.toISOString().split('T')[0];
       
-      const defaultVenue = selectedVenues.length > 0 
-        ? (venues.find(v => v.id === selectedVenues[0])?.name || 'LE') 
-        : 'LE';
+      const defaultVenueId = selectedVenues.length > 0 ? selectedVenues[0] : null;
+      const defaultCourtId = resolveCourtId(defaultVenueId, groupIdx + mIdx);
 
       return {
         name: override?.name || `G${groupIdx + 1} Match ${mIdx + 1}`,
@@ -716,8 +743,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
         date: override?.date || defaultDateStr,
         time: override?.time || startTime,
         duration: override?.duration || Number(matchDuration) || 30,
-        venue: override?.venue || defaultVenue,
-        court: override?.court || 'Court 1',
+        venueId: override?.venueId ?? defaultVenueId,
+        courtId: override?.courtId ?? defaultCourtId,
         moveSubsMatches: override?.moveSubsMatches || false,
       };
     });
@@ -733,8 +760,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
       date: match.date,
       time: match.time,
       duration: match.duration,
-      venue: match.venue,
-      court: match.court,
+      venueId: match.venueId,
+      courtId: match.courtId,
       moveSubsMatches: match.moveSubsMatches || false,
     });
     setShowEditMatchModal(true);
@@ -765,8 +792,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
         date: editMatchForm.date,
         time: editMatchForm.time,
         duration: editMatchForm.duration,
-        venue: editMatchForm.venue,
-        court: editMatchForm.court,
+        venueId: editMatchForm.venueId,
+        courtId: editMatchForm.courtId,
         moveSubsMatches: editMatchForm.moveSubsMatches,
       }
     }));
@@ -810,9 +837,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
       ? Number(participants) || 8
       : Math.max(1, ...generatedGroups.map(g => Number(g.proceeders) || 1));
 
-    const defaultVenue = selectedVenues.length > 0
-      ? (venues.find(v => v.id === selectedVenues[0])?.name || 'LE')
-      : 'LE';
+    const defaultVenueId = selectedVenues.length > 0 ? selectedVenues[0] : null;
+    const defaultCourtId = resolveCourtId(defaultVenueId, 0);
 
     const fallbackDate = startDate || new Date().toISOString().split('T')[0];
 
@@ -836,8 +862,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
       startTime: addMinutesToTime(groupEnd.time, breakMins),
       matchDurationMinutes: Number(matchDuration) || 30,
       breakMinutes: breakMins,
-      venue: defaultVenue,
-      court: 'Court 1',
+      venueId: defaultVenueId,
+      courtId: defaultCourtId,
     };
   };
 
@@ -889,6 +915,17 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
         return updated;
       });
     }
+
+    // Dynamically distribute playoff matches across the venue's selected courts
+    // (round-robin by match index) so BOTH courts are used — the backend stamps a
+    // single court, so we reassign here just like group matches do. Manual court
+    // overrides (applied next) still take precedence.
+    const playoffVenueId = selectedVenues.length > 0 ? selectedVenues[0] : null;
+    matches = matches.map((m, idx) => ({
+      ...m,
+      venueId: playoffVenueId,
+      courtId: resolveCourtId(playoffVenueId, idx),
+    }));
 
     return applyPlayoffOverrides(matches, matchOverrides);
   };
@@ -963,8 +1000,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
             matchDate: match.date,
             matchTime: match.time,
             duration: match.duration,
-            venue: match.venue,
-            court: match.court,
+            venueId: match.venueId,
+            courtId: match.courtId,
             status: 'SCHEDULED',
           });
         });
@@ -988,8 +1025,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
           matchDate: match.date,
           matchTime: match.time,
           duration: match.duration,
-          venue: match.venue,
-          court: match.court || 'Court 1',
+          venueId: match.venueId,
+          courtId: match.courtId || null,
           status: 'SCHEDULED',
         });
       });
@@ -1006,46 +1043,17 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
 
     setSavingSchedule(true);
     try {
-      let configId = currentConfigId;
+      // Unified, atomic save: config + all customized matches in one request.
+      const result = await tournamentService.saveSchedule({
+        configId: currentConfigId,
+        status: 'DRAFT',
+        config: buildScheduleConfigBody(),
+        matches: collectAllMatches(),
+      });
+      setCurrentConfigId(result.config.id);
+      console.log('[Save Draft] Saved:', { configId: result.config.id, savedMatches: result.savedMatches });
 
-      // If no config exists yet, create one
-      if (!configId) {
-        const configData = {
-          ...buildScheduleConfigBody(),
-          status: 'DRAFT',
-        };
-        console.log('[Save Draft] Creating new config:', { eventId: configData.eventId, format: configData.tournamentType, status: configData.status });
-        const configResult = await tournamentService.createConfig(configData);
-        console.log('[Save Draft] Config created:', configResult);
-        configId = configResult?.id;
-
-        // Save all matches
-        const allMatches = collectAllMatches();
-        if (allMatches.length > 0 && configId) {
-          const matchesWithConfigId = allMatches.map(m => ({ ...m, configId, status: 'DRAFT' }));
-          console.log('[Save Draft] Saving matches:', { configId, matchCount: matchesWithConfigId.length });
-          await tournamentService.saveMatchesBulk(configId, matchesWithConfigId);
-          console.log('[Save Draft] Matches saved successfully');
-          setCurrentConfigId(configId);
-        }
-      } else {
-        // Config exists, just update status to DRAFT
-        console.log('[Save Draft] Updating existing config status to DRAFT:', { configId });
-        await tournamentService.updateMatchesStatus(configId, 'DRAFT');
-        console.log('[Save Draft] Matches status updated to DRAFT');
-      }
-
-      // Fetch saved matches from database to verify
-      try {
-        if (configId) {
-          const savedMatches = await tournamentService.getMatchesByConfigId(configId);
-          console.log('[Save Draft] Fetched saved matches from database:', { configId, count: savedMatches.length });
-        }
-      } catch (fetchErr) {
-        console.warn('[Save Draft] Failed to fetch saved matches (non-critical):', fetchErr);
-      }
-
-      setToast('✓ Draft saved! Matches updated to DRAFT status in database.');
+      setToast('✓ Draft saved! ' + result.savedMatches + ' matches stored as DRAFT.');
     } catch (err: any) {
       console.error('[Save Draft] Error:', err);
       const message = err?.message || 'Unknown error';
@@ -1068,46 +1076,17 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
 
     setSavingSchedule(true);
     try {
-      let configId = currentConfigId;
+      // Unified, atomic save: config + all customized matches in one request.
+      const result = await tournamentService.saveSchedule({
+        configId: currentConfigId,
+        status: 'PUBLISHED',
+        config: buildScheduleConfigBody(),
+        matches: collectAllMatches(),
+      });
+      setCurrentConfigId(result.config.id);
+      console.log('[Save Publish] Saved:', { configId: result.config.id, savedMatches: result.savedMatches });
 
-      // If no config exists yet, create one
-      if (!configId) {
-        const configData = {
-          ...buildScheduleConfigBody(),
-          status: 'PUBLISHED',
-        };
-        console.log('[Save Publish] Creating new config:', { eventId: configData.eventId, format: configData.tournamentType, status: configData.status });
-        const result = await tournamentService.createConfig(configData);
-        console.log('[Save Publish] Config created:', result);
-        configId = result?.id;
-
-        // Save all matches
-        const allMatches = collectAllMatches();
-        if (allMatches.length > 0 && configId) {
-          const matchesWithConfigId = allMatches.map(m => ({ ...m, configId, status: 'PUBLISHED' }));
-          console.log('[Save Publish] Saving matches:', { configId, matchCount: matchesWithConfigId.length });
-          await tournamentService.saveMatchesBulk(configId, matchesWithConfigId);
-          console.log('[Save Publish] Matches saved successfully');
-          setCurrentConfigId(configId);
-        }
-      } else {
-        // Config exists, just update status to PUBLISHED
-        console.log('[Save Publish] Updating existing config status to PUBLISHED:', { configId });
-        await tournamentService.updateMatchesStatus(configId, 'PUBLISHED');
-        console.log('[Save Publish] Matches status updated to PUBLISHED');
-      }
-
-      // Fetch saved matches from database to verify
-      try {
-        if (configId) {
-          const savedMatches = await tournamentService.getMatchesByConfigId(configId);
-          console.log('[Save Publish] Fetched saved matches from database:', { configId, count: savedMatches.length });
-        }
-      } catch (fetchErr) {
-        console.warn('[Save Publish] Failed to fetch saved matches (non-critical):', fetchErr);
-      }
-
-      setToast('✓ Schedule published! Matches updated to PUBLISHED status. Participants will be notified.');
+      setToast('✓ Schedule published! ' + result.savedMatches + ' matches stored as PUBLISHED. Participants will be notified.');
     } catch (err: any) {
       console.error('[Save Publish] Error:', err);
       const message = err?.message || 'Unknown error';
@@ -1122,6 +1101,10 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
     setToast('Drag & Drop Scheduler — open visual editor to adjust timings and venues');
     setTimeout(() => setToast(null), 3000);
   };
+
+  // Existing tournament config already saved for the selected event (in tournament_config table).
+  // When present, the schedule was already generated/configured — block re-generation.
+  const existingConfig = existingConfigForEvent();
 
   const showScheduleSaveFooter =
     scheduleGenerated && (isGroupKnockout ? playoffsGenerated : isKnockoutOnly ? playoffsGenerated : true);
@@ -1139,8 +1122,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
       date: match.date,
       time: match.time,
       duration: match.duration,
-      venue: match.venue,
-      court: match.court,
+      venueId: match.venueId,
+      courtId: match.courtId,
       moveSubsMatches: match.moveSubsMatches || false,
     });
     setShowEditMatchModal(true);
@@ -1183,6 +1166,18 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
             <option value="">— Select Event —</option>
             {events.map(e => <option key={e.id} value={e.id}>{e.name} ({e.sportName})</option>)}
           </select>
+
+          {existingConfig && (
+            <div className="mt-3 flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-lg px-3 py-2.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="text-xs">
+                A tournament configuration already exists for this event
+                {existingConfig.tournamentName ? <> — <span className="font-semibold">{existingConfig.tournamentName}</span></> : null}
+                {` (${existingConfig.tournamentType}, ${existingConfig.totalTeams} teams, status: ${existingConfig.status}).`}
+                {' '}Schedule generation is disabled. Open the existing schedule to view or edit it.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Two Column Layout */}
@@ -1410,12 +1405,19 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-[#F5A623]" />
-              <h3 className="text-base font-bold text-slate-200">Venue Configuration</h3>
+              <h3 className="text-base font-bold text-slate-200">Venue Configuration <span className="text-red-400">*</span></h3>
             </div>
             <button className="text-xs border border-[#F5A623]/40 text-[#F5A623] px-3 py-1.5 rounded-lg hover:bg-[#F5A623]/10 transition-colors font-semibold flex items-center gap-1">
               <Plus className="w-3 h-3" /> Add/Edit Venue
             </button>
           </div>
+
+          {selectedVenues.length === 0 && (
+            <div className="flex items-center gap-2 mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="text-xs">Select at least one venue — required to generate the schedule.</span>
+            </div>
+          )}
 
           {/* Venue List */}
           <div className="space-y-2 mb-4 max-h-[260px] overflow-y-auto pr-1">
@@ -1433,11 +1435,54 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
                   </button>
                 </div>
                 {expandedVenue === v.id && (
-                  <div className="px-4 py-3 bg-[#0f1729]/30 border-t border-[#2a3a5c] text-xs space-y-1.5">
-                    {v.city && <div className="flex gap-2"><span className="text-slate-500 w-16">City</span><span className="text-slate-300">: {v.city}</span></div>}
-                    {v.area && <div className="flex gap-2"><span className="text-slate-500 w-16">Area</span><span className="text-slate-300">: {v.area}</span></div>}
-                    {v.address && <div className="flex gap-2"><span className="text-slate-500 w-16">Address</span><span className="text-slate-300">: {v.address}</span></div>}
-                    {v.capacity && <div className="flex gap-2"><span className="text-slate-500 w-16">Capacity</span><span className="text-slate-300">: {v.capacity}</span></div>}
+                  <div className="px-4 py-3 bg-[#0f1729]/30 border-t border-[#2a3a5c] text-xs space-y-2">
+                    {/* Court — selectable (single or multiple) */}
+                    <div className="flex gap-2">
+                      <span className="text-slate-500 w-20 shrink-0 pt-0.5">Court</span>
+                      <div className="text-slate-300 flex-1">
+                        {v.courts && v.courts.length > 0 ? (
+                          <>
+                            <div className="inline-flex flex-wrap gap-1.5 align-middle">
+                              {v.courts.map((c, ci) => {
+                                const isSel = (selectedCourts[v.id] || []).includes(c.name);
+                                return (
+                                  <button
+                                    key={c.id ?? ci}
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); toggleCourt(v.id, c.name); }}
+                                    className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 border transition-colors ${isSel ? 'bg-[#F5A623]/20 border-[#F5A623] text-[#F5A623]' : 'bg-[#142347] border-[#2a437e]/50 text-slate-300 hover:border-slate-500'}`}
+                                  >
+                                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color || '#F5A623' }} />
+                                    {c.name}
+                                    {isSel && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="text-[10px] text-slate-500 mt-1">
+                              {(selectedCourts[v.id]?.length || 0) > 0
+                                ? `${selectedCourts[v.id].length} court${selectedCourts[v.id].length > 1 ? 's' : ''} selected`
+                                : 'Tap a court to select (single or multiple)'}
+                            </div>
+                          </>
+                        ) : <span className="text-slate-500 italic">No courts</span>}
+                      </div>
+                    </div>
+                    {/* Open Time */}
+                    <div className="flex gap-2">
+                      <span className="text-slate-500 w-20 shrink-0">Open Time</span>
+                      <span className="text-slate-300">: {v.openingTime || <span className="text-slate-500 italic">—</span>}</span>
+                    </div>
+                    {/* Close Time */}
+                    <div className="flex gap-2">
+                      <span className="text-slate-500 w-20 shrink-0">Close Time</span>
+                      <span className="text-slate-300">: {v.closingTime || <span className="text-slate-500 italic">—</span>}</span>
+                    </div>
+                    {/* Address */}
+                    <div className="flex gap-2">
+                      <span className="text-slate-500 w-20 shrink-0">Address</span>
+                      <span className="text-slate-300 flex-1">: {v.address || <span className="text-slate-500 italic">—</span>}</span>
+                    </div>
                     {v.mapLink && <a href={v.mapLink} target="_blank" rel="noreferrer" className="text-[#00e5ff] hover:underline inline-flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" /> View on Map</a>}
                     <div className="pt-1">
                       <button className="text-[11px] border border-[#2a3a5c] text-slate-400 px-2 py-1 rounded hover:border-[#F5A623] hover:text-[#F5A623] transition-colors flex items-center gap-1">
@@ -1475,15 +1520,26 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
         <div className="text-center pt-2 pb-4">
           <button
             onClick={isGroupKnockout ? handleScheduleGroups : handleGenerate}
-            disabled={generating || (isGroupKnockout && Number(numberOfGroups) < 2)}
-            className="px-5 py-2 bg-[#F5A623] hover:bg-[#e09212] text-black font-bold rounded-lg transition-all text-xs tracking-wider disabled:opacity-50 shadow-md shadow-[#F5A623]/10 cursor-pointer"
+            disabled={generating || !!existingConfig || selectedVenues.length === 0 || venuesNeedingCourt().length > 0 || (isGroupKnockout && Number(numberOfGroups) < 2)}
+            className="px-5 py-2 bg-[#F5A623] hover:bg-[#e09212] text-black font-bold rounded-lg transition-all text-xs tracking-wider disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#F5A623]/10 cursor-pointer"
           >
             {generating
               ? (isGroupKnockout ? 'Scheduling Groups...' : 'Generating...')
               : (isGroupKnockout ? 'Schedule Groups' : 'Generate Schedule')}
           </button>
+          {existingConfig && (
+            <p className="text-xs text-emerald-400 mt-2">A tournament configuration already exists for this event — generation is disabled.</p>
+          )}
           {isGroupKnockout && Number(numberOfGroups) < 2 && (
             <p className="text-xs text-amber-400 mt-2">Group + Knockout requires at least 2 groups.</p>
+          )}
+          {selectedVenues.length === 0 && (
+            <p className="text-xs text-amber-400 mt-2">Select at least one venue in Venue Configuration to generate the schedule.</p>
+          )}
+          {selectedVenues.length > 0 && venuesNeedingCourt().length > 0 && (
+            <p className="text-xs text-amber-400 mt-2">
+              Select at least one court for: {venuesNeedingCourt().map(v => v.name).join(', ')}.
+            </p>
           )}
         </div>
       )}
@@ -1736,8 +1792,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
                             </div>
                             <div className="flex items-center gap-1 text-[11px] text-slate-400/80">
                               <i className="pi pi-map-marker text-[#F5A623]"></i>
-                              <span>{match.venue}</span>
-                              <span className="text-[#F5A623] font-semibold"> - {match.court}</span>
+                              <span>{venues.find(v => v.id === match.venueId)?.name || 'TBD'}</span>
+                              <span className="text-[#F5A623] font-semibold"> - {venues.find(v => v.id === match.venueId)?.courts?.find(c => c.id === match.courtId)?.name || 'TBD'}</span>
                             </div>
                           </div>
 
@@ -1833,6 +1889,8 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
                   <PlayoffBracketView
                     matches={playoffMatches}
                     onEditMatch={handleOpenEditPlayoffMatch}
+                    resolveVenueName={resolveVenueName}
+                    resolveCourtName={resolveCourtName}
                   />
                 );
               })()}
@@ -1986,29 +2044,37 @@ export function SetupSchedule({ initialEventId }: SetupScheduleProps = {}) {
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className={labelCls}>Venue <span className="text-red-400">*</span></label>
                     <select
-                      value={editMatchForm.venue}
-                      onChange={e => setEditMatchForm(prev => ({ ...prev, venue: e.target.value }))}
+                      value={editMatchForm.venueId ?? ''}
+                      onChange={e => {
+                        const vid = e.target.value ? Number(e.target.value) : null;
+                        const firstCourt = vid ? venues.find(v => v.id === vid)?.courts?.[0]?.id || null : null;
+                        setEditMatchForm(prev => ({ ...prev, venueId: vid, courtId: firstCourt }));
+                      }}
                       className={inputCls}
                       required
                     >
-                      <option value="LE">LE</option>
+                      <option value="">— Select Venue —</option>
                       {venues.map(v => (
-                        <option key={v.id} value={v.name}>{v.name}</option>
+                        <option key={v.id} value={v.id}>{v.name}</option>
                       ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className={labelCls}>Court <span className="text-red-400">*</span></label>
                     <select
-                      value={editMatchForm.court}
-                      onChange={e => setEditMatchForm(prev => ({ ...prev, court: e.target.value }))}
+                      value={editMatchForm.courtId ?? ''}
+                      onChange={e => setEditMatchForm(prev => ({ ...prev, courtId: e.target.value || null }))}
                       className={inputCls}
                       required
                     >
-                      <option value="Court 1">Court 1</option>
-                      <option value="Court 2">Court 2</option>
-                      <option value="Court 3">Court 3</option>
-                      <option value="Court 4">Court 4</option>
+                      {(() => {
+                        const selVenue = venues.find(v => v.id === editMatchForm.venueId);
+                        return selVenue?.courts?.length ? (
+                          selVenue.courts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                        ) : (
+                          <option value="">No courts configured</option>
+                        );
+                      })()}
                     </select>
                   </div>
                 </div>
